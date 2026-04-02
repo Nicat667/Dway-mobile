@@ -1,0 +1,25 @@
+i said that you also need to remove Ai coach from bottom bar and add it like floating cicrle icon at the bottom right corrent just above the main bar. Also you need to remove evrything related to habbits part. for example, when i enter tasks in bar there should not be anything about habits, only task. Also you forgot to fix category part. Firstly add other possible categories and and the last add smt like "other" so that user can rename and add the category that they want if they cannot find it from existing ones. 1) The word Mother in the bar should be replaced with the word Plan. The icon should also be designed accordingly.
+
+Instead of this daily progress. It should be written as Daily. And it should be changeable by clicking on it. There should be separate pages for options such as Weekly, Monthly, Yearly and “+” (ie add yourself).
+
+Add a category adding icon to the section where you add a new task.
+
+When you set a new task, there should be a clock icon on the right side which
+should play the role of an alarm clock to remind you of the task.
+
+Change the sound of that alarm clock from the profile section
+
+There should be a Timer icon in the lower left section
+
+Remove the Coach section from the bar.
+
+Ai Mother should be written - with the new rule, there should be a button on the lower right side in the section where “Plan” is written. When you click on it, the ai support page should open. (The AI ​​bar we removed)
+
+According to what I said, in the new Bar section - Plan, Progress, community and profile.
+
+Let's talk about Progress. Based on the statistical percentages of the tasks we did in the plan.
+
+Let's have Weekly, Monthly, Yearly posts. And let's show the percentages in the form of circles. The iconography shown according to the percentage would be good. The user can use this as data. Let's integrate AI here. In the lower part, there should be messages related to the tasks done based on the data. 3 pieces. 2 positive, 1 negative. For example:
+This week you completed 100% of the sports tasks, this month you showed statistics of 50% of the tasks. In the annual plan, you did at least the task of learning English, we should focus on this and develop it! (according to the motivation message)
+
+(Everything here was an important place based on data as a result of what we wrote in the plan) That is why i provided prompt again. LAnguage part is okay, fix others

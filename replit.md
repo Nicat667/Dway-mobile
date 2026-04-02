@@ -16,6 +16,20 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
+## Artifacts
+
+### Notion Companion (Mobile App)
+- **Type**: Expo React Native
+- **Path**: `artifacts/notion-companion/`
+- **Features**:
+  - **Plan Tab**: Task management with Daily/Weekly/Monthly/Yearly periods, category filter chips, task creation with alarm clock, timer button (bottom left), AI Mother floating button (bottom right above + FAB)
+  - **Progress Tab**: Weekly/Monthly/Yearly stats with circular progress indicators, per-category breakdown with progress bars, AI-generated insights (2 positive, 1 negative)
+  - **Community Tab**: Activity feed with likes/comments, challenges with progress tracking
+  - **Profile Tab**: Stats display, achievements, alarm sound picker, notification settings
+  - **Add Task Modal**: Title input with clock icon for alarm, category chips + add new category, priority selector, alarm time picker
+  - **AI Mother Modal**: Chat interface with preset suggestions, context-aware responses based on task stats
+  - **Timer Modal**: Focus/Short/Long break pomodoro timer
+
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages
