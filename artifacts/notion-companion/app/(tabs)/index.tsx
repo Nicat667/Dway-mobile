@@ -17,22 +17,26 @@ import AiMotherModal from "@/components/AiMotherModal";
 import TaskCard from "@/components/TaskCard";
 import TimerModal from "@/components/TimerModal";
 import { Category, Task, useApp } from "@/context/AppContext";
+import { useTheme } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
 type PeriodOption = "daily" | "weekly" | "monthly" | "yearly" | "custom";
 
-const PERIOD_LABELS: Record<PeriodOption, string> = {
-  daily: "Daily",
-  weekly: "Weekly",
-  monthly: "Monthly",
-  yearly: "Yearly",
-  custom: "Custom",
-};
+const DAILY_QUOTES = [
+  { quote: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+  { quote: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+  { quote: "It always seems impossible until it's done.", author: "Nelson Mandela" },
+  { quote: "Success is the sum of small efforts repeated day in and day out.", author: "R. Collier" },
+  { quote: "The future depends on what you do today.", author: "Mahatma Gandhi" },
+  { quote: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
+  { quote: "Push yourself, because no one else is going to do it for you.", author: "Unknown" },
+];
 
 export default function PlanScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { tasks, categories } = useApp();
+  const { t } = useTheme();
 
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>("daily");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -40,6 +44,17 @@ export default function PlanScreen() {
   const [showAiMother, setShowAiMother] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
   const [showPeriodPicker, setShowPeriodPicker] = useState(false);
+
+  const todayIndex = new Date().getDay();
+  const dailyQuote = DAILY_QUOTES[todayIndex % DAILY_QUOTES.length];
+
+  const PERIOD_LABELS: Record<PeriodOption, string> = {
+    daily: t("daily"),
+    weekly: t("weekly"),
+    monthly: t("monthly"),
+    yearly: t("yearly"),
+    custom: t("custom"),
+  };
 
   const filteredTasks = tasks.filter((task: Task) => {
     const now = new Date();
@@ -65,46 +80,30 @@ export default function PlanScreen() {
     return dateMatch && categoryMatch;
   });
 
-  const completedCount = filteredTasks.filter((t) => t.completed).length;
+  const pendingTasks = filteredTasks.filter((t) => !t.completed);
+  const completedTasks = filteredTasks.filter((t) => t.completed);
+  const completedCount = completedTasks.length;
   const totalCount = filteredTasks.length;
 
   const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
+    container: { flex: 1, backgroundColor: colors.background },
     header: {
       paddingHorizontal: 20,
-      paddingTop:
-        Platform.OS === "web"
-          ? insets.top + 67
-          : insets.top + 16,
-      paddingBottom: 16,
+      paddingTop: Platform.OS === "web" ? insets.top + 67 : insets.top + 16,
+      paddingBottom: 12,
     },
     headerTop: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      marginBottom: 4,
+      marginBottom: 2,
     },
-    periodBtn: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-    },
+    periodBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
     periodLabel: {
       fontSize: 28,
       fontWeight: "800",
       color: colors.foreground,
       fontFamily: "Inter_700Bold",
-    },
-    chevron: {
-      marginTop: 4,
-    },
-    statsRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
     },
     statsText: {
       fontSize: 14,
@@ -122,12 +121,13 @@ export default function PlanScreen() {
       backgroundColor: colors.card,
       borderRadius: 16,
       padding: 8,
-      zIndex: 100,
+      zIndex: 200,
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.15,
-      shadowRadius: 16,
-      elevation: 10,
+      shadowOpacity: 0.18,
+      shadowRadius: 20,
+      elevation: 12,
+      minWidth: 180,
     },
     periodOption: {
       paddingHorizontal: 16,
@@ -137,14 +137,39 @@ export default function PlanScreen() {
       alignItems: "center",
       gap: 10,
     },
-    periodOptionText: {
-      fontSize: 15,
-      fontFamily: "Inter_500Medium",
-    },
-    categoriesRow: {
-      paddingHorizontal: 20,
+    periodOptionText: { fontSize: 15, fontFamily: "Inter_500Medium" },
+    quoteCard: {
+      marginHorizontal: 20,
       marginBottom: 16,
+      backgroundColor: colors.primary + "14",
+      borderRadius: 16,
+      padding: 16,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.primary,
     },
+    quoteLabel: {
+      fontSize: 10,
+      fontWeight: "700",
+      color: colors.primary,
+      fontFamily: "Inter_700Bold",
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      marginBottom: 6,
+    },
+    quoteText: {
+      fontSize: 14,
+      color: colors.foreground,
+      fontFamily: "Inter_400Regular",
+      lineHeight: 21,
+      fontStyle: "italic",
+    },
+    quoteAuthor: {
+      fontSize: 12,
+      color: colors.mutedForeground,
+      fontFamily: "Inter_500Medium",
+      marginTop: 6,
+    },
+    categoriesRow: { paddingHorizontal: 20, marginBottom: 16 },
     categoryChip: {
       paddingHorizontal: 14,
       paddingVertical: 8,
@@ -162,20 +187,26 @@ export default function PlanScreen() {
     },
     listContent: {
       paddingHorizontal: 20,
-      paddingBottom:
-        Platform.OS === "web"
-          ? 140
-          : insets.bottom + 100,
+      paddingBottom: Platform.OS === "web" ? 140 : insets.bottom + 110,
+    },
+    sectionTitle: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.mutedForeground,
+      fontFamily: "Inter_700Bold",
+      marginBottom: 10,
+      textTransform: "uppercase",
+      letterSpacing: 0.8,
     },
     emptyState: {
       alignItems: "center",
-      paddingTop: 60,
+      paddingTop: 50,
       paddingHorizontal: 40,
     },
     emptyIcon: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
+      width: 64,
+      height: 64,
+      borderRadius: 32,
       backgroundColor: colors.muted,
       alignItems: "center",
       justifyContent: "center",
@@ -199,10 +230,7 @@ export default function PlanScreen() {
     fab: {
       position: "absolute",
       right: 20,
-      bottom:
-        Platform.OS === "web"
-          ? 34 + 84 + 16
-          : insets.bottom + 70 + 16,
+      bottom: Platform.OS === "web" ? 34 + 84 + 16 : insets.bottom + 70 + 16,
       width: 56,
       height: 56,
       borderRadius: 28,
@@ -218,10 +246,7 @@ export default function PlanScreen() {
     aiMotherBtn: {
       position: "absolute",
       right: 20,
-      bottom:
-        Platform.OS === "web"
-          ? 34 + 84 + 80
-          : insets.bottom + 70 + 80,
+      bottom: Platform.OS === "web" ? 34 + 84 + 82 : insets.bottom + 70 + 82,
       width: 50,
       height: 50,
       borderRadius: 25,
@@ -237,17 +262,14 @@ export default function PlanScreen() {
     aiMotherLabel: {
       position: "absolute",
       right: 76,
-      bottom:
-        Platform.OS === "web"
-          ? 34 + 84 + 93
-          : insets.bottom + 70 + 93,
+      bottom: Platform.OS === "web" ? 34 + 84 + 96 : insets.bottom + 70 + 96,
       backgroundColor: colors.card,
       borderRadius: 10,
       paddingHorizontal: 10,
       paddingVertical: 5,
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
+      shadowOpacity: 0.12,
       shadowRadius: 6,
       elevation: 4,
     },
@@ -260,10 +282,7 @@ export default function PlanScreen() {
     timerBtn: {
       position: "absolute",
       left: 20,
-      bottom:
-        Platform.OS === "web"
-          ? 34 + 84 + 16
-          : insets.bottom + 70 + 16,
+      bottom: Platform.OS === "web" ? 34 + 84 + 16 : insets.bottom + 70 + 16,
       width: 50,
       height: 50,
       borderRadius: 25,
@@ -278,22 +297,16 @@ export default function PlanScreen() {
       borderWidth: 1,
       borderColor: colors.border,
     },
-    sectionTitle: {
-      fontSize: 13,
-      fontWeight: "600",
-      color: colors.mutedForeground,
-      fontFamily: "Inter_600SemiBold",
-      marginBottom: 12,
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
-    },
-    completedSection: {
-      marginTop: 8,
-    },
+    completedSection: { marginTop: 8 },
   });
 
-  const pendingTasks = filteredTasks.filter((t) => !t.completed);
-  const completedTasks = filteredTasks.filter((t) => t.completed);
+  const PERIOD_ICONS: Record<PeriodOption, string> = {
+    daily: "sun",
+    weekly: "calendar",
+    monthly: "layers",
+    yearly: "trending-up",
+    custom: "plus-circle",
+  };
 
   const renderListHeader = () => (
     <>
@@ -303,54 +316,40 @@ export default function PlanScreen() {
             style={styles.periodBtn}
             onPress={() => setShowPeriodPicker(!showPeriodPicker)}
           >
-            <Text style={styles.periodLabel}>
-              {PERIOD_LABELS[selectedPeriod]}
-            </Text>
-            <Feather
-              name="chevron-down"
-              size={20}
-              color={colors.foreground}
-              style={styles.chevron}
-            />
+            <Text style={styles.periodLabel}>{PERIOD_LABELS[selectedPeriod]}</Text>
+            <Feather name="chevron-down" size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
-        <View style={styles.statsRow}>
-          <Text style={styles.statsText}>
-            <Text style={styles.statsHighlight}>{completedCount}</Text> of{" "}
-            <Text style={styles.statsHighlight}>{totalCount}</Text> tasks done
-          </Text>
-        </View>
+        <Text style={styles.statsText}>
+          <Text style={styles.statsHighlight}>{completedCount}</Text>
+          {" of "}
+          <Text style={styles.statsHighlight}>{totalCount}</Text>
+          {" tasks completed"}
+        </Text>
       </View>
 
       {showPeriodPicker && (
         <View style={styles.periodModal}>
-          {(Object.keys(PERIOD_LABELS) as PeriodOption[]).map((period) => (
+          {(Object.keys(PERIOD_ICONS) as PeriodOption[]).map((period) => (
             <TouchableOpacity
               key={period}
               style={[
                 styles.periodOption,
                 {
                   backgroundColor:
-                    selectedPeriod === period ? colors.primary + "18" : "transparent",
+                    selectedPeriod === period
+                      ? colors.primary + "18"
+                      : "transparent",
                 },
               ]}
               onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setSelectedPeriod(period);
                 setShowPeriodPicker(false);
               }}
             >
               <Feather
-                name={
-                  period === "daily"
-                    ? "sun"
-                    : period === "weekly"
-                    ? "calendar"
-                    : period === "monthly"
-                    ? "layers"
-                    : period === "yearly"
-                    ? "trending-up"
-                    : "plus"
-                }
+                name={PERIOD_ICONS[period] as any}
                 size={16}
                 color={
                   selectedPeriod === period
@@ -366,16 +365,25 @@ export default function PlanScreen() {
                       selectedPeriod === period
                         ? colors.primary
                         : colors.foreground,
-                    fontWeight: selectedPeriod === period ? "700" : "400",
+                    fontWeight: selectedPeriod === period ? "700" : "500",
                   },
                 ]}
               >
                 {PERIOD_LABELS[period]}
               </Text>
+              {selectedPeriod === period && (
+                <Feather name="check" size={14} color={colors.primary} />
+              )}
             </TouchableOpacity>
           ))}
         </View>
       )}
+
+      <View style={styles.quoteCard}>
+        <Text style={styles.quoteLabel}>Daily Motivation</Text>
+        <Text style={styles.quoteText}>"{dailyQuote.quote}"</Text>
+        <Text style={styles.quoteAuthor}>— {dailyQuote.author}</Text>
+      </View>
 
       <ScrollView
         horizontal
@@ -383,81 +391,48 @@ export default function PlanScreen() {
         style={styles.categoriesRow}
         contentContainerStyle={{ paddingRight: 20 }}
       >
-        <TouchableOpacity
-          style={[
-            styles.categoryChip,
-            {
-              backgroundColor:
-                selectedCategory === "all" ? colors.primary + "18" : "transparent",
-              borderColor:
-                selectedCategory === "all" ? colors.primary : colors.border,
-            },
-          ]}
-          onPress={() => setSelectedCategory("all")}
-        >
-          <Feather
-            name="grid"
-            size={13}
-            color={selectedCategory === "all" ? colors.primary : colors.mutedForeground}
-          />
-          <Text
-            style={[
-              styles.categoryChipText,
-              {
-                color:
-                  selectedCategory === "all"
-                    ? colors.primary
-                    : colors.mutedForeground,
-              },
-            ]}
-          >
-            All
-          </Text>
-        </TouchableOpacity>
-        {categories.map((cat: Category) => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[
-              styles.categoryChip,
-              {
-                backgroundColor:
-                  selectedCategory === cat.id
-                    ? cat.color + "18"
-                    : "transparent",
-                borderColor:
-                  selectedCategory === cat.id ? cat.color : colors.border,
-              },
-            ]}
-            onPress={() => setSelectedCategory(cat.id)}
-          >
-            <Feather
-              name={cat.icon as any}
-              size={13}
-              color={
-                selectedCategory === cat.id ? cat.color : colors.mutedForeground
-              }
-            />
-            <Text
+        {[{ id: "all", name: "All", color: colors.primary, icon: "grid" }, ...categories].map(
+          (cat: Category | { id: string; name: string; color: string; icon: string }) => (
+            <TouchableOpacity
+              key={cat.id}
               style={[
-                styles.categoryChipText,
+                styles.categoryChip,
                 {
-                  color:
-                    selectedCategory === cat.id
-                      ? cat.color
-                      : colors.mutedForeground,
+                  backgroundColor:
+                    selectedCategory === cat.id ? cat.color + "18" : "transparent",
+                  borderColor:
+                    selectedCategory === cat.id ? cat.color : colors.border,
                 },
               ]}
+              onPress={() => setSelectedCategory(cat.id)}
             >
-              {cat.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Feather
+                name={cat.icon as any}
+                size={13}
+                color={
+                  selectedCategory === cat.id ? cat.color : colors.mutedForeground
+                }
+              />
+              <Text
+                style={[
+                  styles.categoryChipText,
+                  {
+                    color:
+                      selectedCategory === cat.id
+                        ? cat.color
+                        : colors.mutedForeground,
+                  },
+                ]}
+              >
+                {cat.name}
+              </Text>
+            </TouchableOpacity>
+          )
+        )}
       </ScrollView>
 
       {pendingTasks.length > 0 && (
-        <View style={{ paddingHorizontal: 20 }}>
-          <Text style={styles.sectionTitle}>In Progress</Text>
-        </View>
+        <Text style={styles.sectionTitle}>{t("inProgress")}</Text>
       )}
     </>
   );
@@ -465,8 +440,8 @@ export default function PlanScreen() {
   const renderListFooter = () => (
     <>
       {completedTasks.length > 0 && (
-        <View style={[styles.completedSection, { paddingHorizontal: 20 }]}>
-          <Text style={styles.sectionTitle}>Completed</Text>
+        <View style={styles.completedSection}>
+          <Text style={styles.sectionTitle}>{t("completed")}</Text>
           {completedTasks.map((task) => (
             <TaskCard key={task.id} task={task} />
           ))}
@@ -475,12 +450,10 @@ export default function PlanScreen() {
       {filteredTasks.length === 0 && (
         <View style={styles.emptyState}>
           <View style={styles.emptyIcon}>
-            <Feather name="check-square" size={26} color={colors.mutedForeground} />
+            <Feather name="check-square" size={28} color={colors.mutedForeground} />
           </View>
-          <Text style={styles.emptyTitle}>No tasks yet</Text>
-          <Text style={styles.emptyText}>
-            Tap the + button to add your first task for {PERIOD_LABELS[selectedPeriod].toLowerCase()}
-          </Text>
+          <Text style={styles.emptyTitle}>{t("noTasks")}</Text>
+          <Text style={styles.emptyText}>{t("addFirst")}</Text>
         </View>
       )}
     </>

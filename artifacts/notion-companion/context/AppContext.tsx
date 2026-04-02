@@ -29,14 +29,6 @@ export type Task = {
   notes?: string;
 };
 
-export type TimerSession = {
-  taskId?: string;
-  duration: number;
-  remaining: number;
-  isRunning: boolean;
-  type: "focus" | "break";
-};
-
 export type AlarmSound = "default" | "gentle" | "beep" | "bell";
 
 export type ProfileSettings = {
@@ -51,7 +43,6 @@ type AppContextType = {
   tasks: Task[];
   categories: Category[];
   profileSettings: ProfileSettings;
-  timerSession: TimerSession | null;
   addTask: (task: Omit<Task, "id" | "createdAt">) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
@@ -60,7 +51,6 @@ type AppContextType = {
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
   updateProfileSettings: (updates: Partial<ProfileSettings>) => void;
-  setTimerSession: (session: TimerSession | null) => void;
   getTaskStats: (period: ProgressPeriod) => {
     total: number;
     completed: number;
@@ -74,7 +64,7 @@ type AppContextType = {
   };
 };
 
-const DEFAULT_CATEGORIES: Category[] = [
+export const DEFAULT_CATEGORIES: Category[] = [
   { id: "work", name: "Work", color: "#6366f1", icon: "briefcase" },
   { id: "health", name: "Health", color: "#22c55e", icon: "heart" },
   { id: "sport", name: "Sport", color: "#f59e0b", icon: "activity" },
@@ -87,17 +77,64 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: "other", name: "Other", color: "#94a3b8", icon: "more-horizontal" },
 ];
 
+function daysAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString();
+}
+
+function monthsAgo(n: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - n);
+  return d.toISOString();
+}
+
+const DEMO_TASKS: Task[] = [
+  // TODAY
+  { id: "d1", title: "Review Q2 project proposal", categoryId: "work", completed: true, priority: "high", alarmEnabled: true, alarmTime: new Date().toISOString(), createdAt: daysAgo(0), completedAt: daysAgo(0) },
+  { id: "d2", title: "Morning run — 5km", categoryId: "sport", completed: true, priority: "medium", alarmEnabled: false, createdAt: daysAgo(0), completedAt: daysAgo(0) },
+  { id: "d3", title: "Read 30 pages of book", categoryId: "learning", completed: false, priority: "medium", alarmEnabled: true, alarmTime: new Date().toISOString(), createdAt: daysAgo(0) },
+  { id: "d4", title: "Reply to team emails", categoryId: "work", completed: false, priority: "high", alarmEnabled: false, createdAt: daysAgo(0) },
+  { id: "d5", title: "Meditate for 10 minutes", categoryId: "health", completed: true, priority: "low", alarmEnabled: false, createdAt: daysAgo(0), completedAt: daysAgo(0) },
+  // THIS WEEK
+  { id: "w1", title: "Prepare weekly report slides", categoryId: "work", completed: true, priority: "high", alarmEnabled: false, createdAt: daysAgo(1), completedAt: daysAgo(1) },
+  { id: "w2", title: "Gym session — upper body", categoryId: "sport", completed: true, priority: "medium", alarmEnabled: false, createdAt: daysAgo(1), completedAt: daysAgo(1) },
+  { id: "w3", title: "Study English vocabulary — 20 words", categoryId: "learning", completed: false, priority: "low", alarmEnabled: false, createdAt: daysAgo(2) },
+  { id: "w4", title: "Call mom and dad", categoryId: "personal", completed: true, priority: "high", alarmEnabled: true, alarmTime: daysAgo(2), createdAt: daysAgo(2), completedAt: daysAgo(2) },
+  { id: "w5", title: "Grocery shopping", categoryId: "home", completed: true, priority: "medium", alarmEnabled: false, createdAt: daysAgo(2), completedAt: daysAgo(2) },
+  { id: "w6", title: "Review monthly budget", categoryId: "finance", completed: false, priority: "high", alarmEnabled: false, createdAt: daysAgo(3) },
+  { id: "w7", title: "Sketch new design concept", categoryId: "creative", completed: true, priority: "medium", alarmEnabled: false, createdAt: daysAgo(3), completedAt: daysAgo(3) },
+  { id: "w8", title: "Coffee with Alex", categoryId: "social", completed: true, priority: "low", alarmEnabled: true, alarmTime: daysAgo(4), createdAt: daysAgo(4), completedAt: daysAgo(4) },
+  { id: "w9", title: "Fix homepage bug", categoryId: "work", completed: true, priority: "high", alarmEnabled: false, createdAt: daysAgo(5), completedAt: daysAgo(5) },
+  { id: "w10", title: "Yoga class", categoryId: "health", completed: false, priority: "medium", alarmEnabled: false, createdAt: daysAgo(6) },
+  // THIS MONTH
+  { id: "m1", title: "Quarterly financial review", categoryId: "finance", completed: true, priority: "high", alarmEnabled: false, createdAt: daysAgo(10), completedAt: daysAgo(10) },
+  { id: "m2", title: "Write blog post draft", categoryId: "creative", completed: true, priority: "medium", alarmEnabled: false, createdAt: daysAgo(12), completedAt: daysAgo(12) },
+  { id: "m3", title: "Online course — Module 3", categoryId: "learning", completed: false, priority: "medium", alarmEnabled: false, createdAt: daysAgo(14) },
+  { id: "m4", title: "Deep clean apartment", categoryId: "home", completed: true, priority: "low", alarmEnabled: false, createdAt: daysAgo(15), completedAt: daysAgo(15) },
+  { id: "m5", title: "Team building event planning", categoryId: "work", completed: true, priority: "high", alarmEnabled: false, createdAt: daysAgo(18), completedAt: daysAgo(18) },
+  { id: "m6", title: "Half marathon training week 3", categoryId: "sport", completed: true, priority: "high", alarmEnabled: false, createdAt: daysAgo(20), completedAt: daysAgo(20) },
+  { id: "m7", title: "Visit dentist", categoryId: "health", completed: false, priority: "medium", alarmEnabled: false, createdAt: daysAgo(22) },
+  { id: "m8", title: "Friend's birthday dinner", categoryId: "social", completed: true, priority: "medium", alarmEnabled: true, alarmTime: daysAgo(25), createdAt: daysAgo(25), completedAt: daysAgo(25) },
+  // THIS YEAR
+  { id: "y1", title: "Complete online certification", categoryId: "learning", completed: true, priority: "high", alarmEnabled: false, createdAt: monthsAgo(2), completedAt: monthsAgo(2) },
+  { id: "y2", title: "Set up emergency fund", categoryId: "finance", completed: true, priority: "high", alarmEnabled: false, createdAt: monthsAgo(3), completedAt: monthsAgo(3) },
+  { id: "y3", title: "Run first 10K race", categoryId: "sport", completed: true, priority: "high", alarmEnabled: false, createdAt: monthsAgo(3), completedAt: monthsAgo(3) },
+  { id: "y4", title: "Launch personal portfolio", categoryId: "creative", completed: false, priority: "medium", alarmEnabled: false, createdAt: monthsAgo(4) },
+  { id: "y5", title: "Learn Spanish — A1 level", categoryId: "learning", completed: false, priority: "low", alarmEnabled: false, createdAt: monthsAgo(5) },
+  { id: "y6", title: "Start meal prep routine", categoryId: "health", completed: true, priority: "medium", alarmEnabled: false, createdAt: monthsAgo(6), completedAt: monthsAgo(6) },
+];
+
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>(DEMO_TASKS);
   const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [profileSettings, setProfileSettings] = useState<ProfileSettings>({
-    name: "User",
+    name: "Alex",
     alarmSound: "default",
     notificationsEnabled: true,
   });
-  const [timerSession, setTimerSession] = useState<TimerSession | null>(null);
 
   useEffect(() => {
     loadData();
@@ -106,9 +143,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadData = async () => {
     try {
       const [tasksData, categoriesData, profileData] = await Promise.all([
-        AsyncStorage.getItem("tasks"),
-        AsyncStorage.getItem("categories"),
-        AsyncStorage.getItem("profile"),
+        AsyncStorage.getItem("tasks_v2"),
+        AsyncStorage.getItem("categories_v2"),
+        AsyncStorage.getItem("profile_v2"),
       ]);
       if (tasksData) setTasks(JSON.parse(tasksData));
       if (categoriesData) {
@@ -121,15 +158,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const saveTasks = useCallback(async (newTasks: Task[]) => {
-    await AsyncStorage.setItem("tasks", JSON.stringify(newTasks));
+    await AsyncStorage.setItem("tasks_v2", JSON.stringify(newTasks));
   }, []);
 
   const saveCategories = useCallback(async (newCats: Category[]) => {
-    await AsyncStorage.setItem("categories", JSON.stringify(newCats));
+    await AsyncStorage.setItem("categories_v2", JSON.stringify(newCats));
   }, []);
 
   const saveProfile = useCallback(async (profile: ProfileSettings) => {
-    await AsyncStorage.setItem("profile", JSON.stringify(profile));
+    await AsyncStorage.setItem("profile_v2", JSON.stringify(profile));
   }, []);
 
   const addTask = useCallback(
@@ -267,7 +304,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           categoryId: cat.id,
           total: catTotal,
           completed: catCompleted,
-          percentage: catTotal > 0 ? Math.round((catCompleted / catTotal) * 100) : 0,
+          percentage:
+            catTotal > 0 ? Math.round((catCompleted / catTotal) * 100) : 0,
         };
       });
 
@@ -282,7 +320,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         tasks,
         categories,
         profileSettings,
-        timerSession,
         addTask,
         updateTask,
         deleteTask,
@@ -291,7 +328,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateCategory,
         deleteCategory,
         updateProfileSettings,
-        setTimerSession,
         getTaskStats,
       }}
     >
