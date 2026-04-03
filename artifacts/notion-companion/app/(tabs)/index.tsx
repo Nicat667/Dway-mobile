@@ -13,14 +13,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AddTaskModal from "@/components/AddTaskModal";
-import AiMotherModal from "@/components/AiMotherModal";
+import DwayAiModal from "@/components/DwayAiModal";
 import TaskCard from "@/components/TaskCard";
 import TimerModal from "@/components/TimerModal";
 import { Category, Task, useApp } from "@/context/AppContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
-type PeriodOption = "daily" | "weekly" | "monthly" | "yearly" | "custom";
+type PeriodOption = "daily" | "weekly" | "monthly" | "yearly";
 
 const DAILY_QUOTES = [
   { quote: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -53,7 +53,6 @@ export default function PlanScreen() {
     weekly: t("weekly"),
     monthly: t("monthly"),
     yearly: t("yearly"),
-    custom: t("custom"),
   };
 
   const filteredTasks = tasks.filter((task: Task) => {
@@ -305,7 +304,6 @@ export default function PlanScreen() {
     weekly: "calendar",
     monthly: "layers",
     yearly: "trending-up",
-    custom: "plus-circle",
   };
 
   const renderListHeader = () => (
@@ -482,7 +480,7 @@ export default function PlanScreen() {
       </TouchableOpacity>
 
       <View style={styles.aiMotherLabel}>
-        <Text style={styles.aiMotherLabelText}>AI Mother</Text>
+        <Text style={styles.aiMotherLabelText}>DWAY AI</Text>
       </View>
       <TouchableOpacity
         style={styles.aiMotherBtn}
@@ -505,7 +503,7 @@ export default function PlanScreen() {
       </TouchableOpacity>
 
       <AddTaskModal visible={showAddTask} onClose={() => setShowAddTask(false)} />
-      <AiMotherModal visible={showAiMother} onClose={() => setShowAiMother(false)} />
+      <DwayAiModal visible={showAiMother} onClose={() => setShowAiMother(false)} />
       <TimerModal visible={showTimer} onClose={() => setShowTimer(false)} />
     </View>
   );

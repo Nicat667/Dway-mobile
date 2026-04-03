@@ -36,7 +36,7 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; icon: string }[] = [
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { tasks, profileSettings, updateProfileSettings } = useApp();
+  const { tasks, profileSettings, updateProfileSettings, joinedChallenges } = useApp();
   const { themeMode, language, setThemeMode, setLanguage, t } = useTheme();
 
   const [showSoundPicker, setShowSoundPicker] = useState(false);
@@ -206,26 +206,72 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Achievements</Text>
           <View style={styles.achievementRow}>
+            {/* First Task */}
             <View style={styles.achievementCard}>
-              <View style={[styles.achievementIcon, { backgroundColor: "#f59e0b20" }]}>
-                <Feather name="zap" size={20} color="#f59e0b" />
+              <View style={[styles.achievementIcon, { backgroundColor: completedTasks >= 1 ? "#f59e0b20" : colors.muted }]}>
+                <Feather name={completedTasks >= 1 ? "zap" : "lock"} size={20} color={completedTasks >= 1 ? "#f59e0b" : colors.mutedForeground} />
               </View>
-              <Text style={styles.achievementTitle}>First Task</Text>
+              <Text style={[styles.achievementTitle, { color: completedTasks >= 1 ? colors.foreground : colors.mutedForeground }]}>
+                First Task
+              </Text>
             </View>
+            {/* 10 Done */}
             <View style={styles.achievementCard}>
-              <View style={[styles.achievementIcon, { backgroundColor: "#22c55e20" }]}>
-                <Feather name="award" size={20} color="#22c55e" />
+              <View style={[styles.achievementIcon, { backgroundColor: completedTasks >= 10 ? "#22c55e20" : colors.muted }]}>
+                <Feather name={completedTasks >= 10 ? "award" : "lock"} size={20} color={completedTasks >= 10 ? "#22c55e" : colors.mutedForeground} />
               </View>
-              <Text style={styles.achievementTitle}>10 Done</Text>
+              <Text style={[styles.achievementTitle, { color: completedTasks >= 10 ? colors.foreground : colors.mutedForeground }]}>
+                10 Done
+              </Text>
             </View>
+            {/* 20 Club */}
             <View style={styles.achievementCard}>
               <View style={[styles.achievementIcon, { backgroundColor: completedTasks >= 20 ? "#6366f120" : colors.muted }]}>
                 <Feather name={completedTasks >= 20 ? "star" : "lock"} size={20} color={completedTasks >= 20 ? "#6366f1" : colors.mutedForeground} />
               </View>
               <Text style={[styles.achievementTitle, { color: completedTasks >= 20 ? colors.foreground : colors.mutedForeground }]}>
-                {completedTasks >= 20 ? "20 Club" : "20 Club"}
+                20 Club
               </Text>
             </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Community Challenges</Text>
+          <View style={styles.settingCard}>
+            {joinedChallenges.size === 0 ? (
+              <View style={{ paddingHorizontal: 16, paddingVertical: 18, alignItems: "center" }}>
+                <Feather name="users" size={24} color={colors.mutedForeground} style={{ marginBottom: 8 }} />
+                <Text style={{ fontSize: 14, color: colors.mutedForeground, fontFamily: "Inter_400Regular", textAlign: "center" }}>
+                  No challenges joined yet.{"\n"}Visit Community to join one!
+                </Text>
+              </View>
+            ) : (
+              [
+                { id: "c1", title: "7-Day Streak", icon: "zap", color: "#f59e0b" },
+                { id: "c2", title: "100 Tasks Club", icon: "award", color: "#6366f1" },
+                { id: "c3", title: "Category Master", icon: "grid", color: "#22c55e" },
+                { id: "c4", title: "Early Bird", icon: "sun", color: "#f97316" },
+              ]
+                .filter((c) => joinedChallenges.has(c.id))
+                .map((c, i, arr) => (
+                  <View
+                    key={c.id}
+                    style={[
+                      { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 },
+                      i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
+                    ]}
+                  >
+                    <View style={[styles.settingIcon, { backgroundColor: c.color + "20" }]}>
+                      <Feather name={c.icon as any} size={18} color={c.color} />
+                    </View>
+                    <Text style={styles.settingLabel}>{c.title}</Text>
+                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: c.color + "20" }}>
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: c.color, fontFamily: "Inter_700Bold" }}>Joined</Text>
+                    </View>
+                  </View>
+                ))
+            )}
           </View>
         </View>
 

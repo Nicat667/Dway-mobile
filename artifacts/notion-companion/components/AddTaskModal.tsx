@@ -27,8 +27,13 @@ type Props = {
 
 const PRIORITY_OPTIONS = [
   { value: "low" as const, label: "Low", color: "#22c55e" },
-  { value: "medium" as const, label: "Med", color: "#f59e0b" },
+  { value: "medium" as const, label: "Medium", color: "#f59e0b" },
   { value: "high" as const, label: "High", color: "#ef4444" },
+];
+
+const CATEGORY_COLORS = [
+  "#6366f1", "#22c55e", "#f59e0b", "#3b82f6", "#ec4899",
+  "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#94a3b8",
 ];
 
 export default function AddTaskModal({ visible, onClose }: Props) {
@@ -36,8 +41,10 @@ export default function AddTaskModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { categories, addTask, addCategory } = useApp();
 
+  const visibleCategories = categories.filter((c: Category) => c.id !== "other");
+
   const [title, setTitle] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState(categories[0]?.id ?? "");
+  const [selectedCategory, setSelectedCategory] = useState(visibleCategories[0]?.id ?? "");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [alarmEnabled, setAlarmEnabled] = useState(false);
   const [alarmTime, setAlarmTime] = useState(new Date());
@@ -45,11 +52,6 @@ export default function AddTaskModal({ visible, onClose }: Props) {
   const [notes, setNotes] = useState("");
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-
-  const CATEGORY_COLORS = [
-    "#6366f1", "#22c55e", "#f59e0b", "#3b82f6", "#ec4899",
-    "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#94a3b8",
-  ];
   const [newCategoryColor, setNewCategoryColor] = useState(CATEGORY_COLORS[0]);
 
   const handleSubmit = () => {
@@ -73,7 +75,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
 
   const resetForm = () => {
     setTitle("");
-    setSelectedCategory(categories[0]?.id ?? "");
+    setSelectedCategory(visibleCategories[0]?.id ?? "");
     setPriority("medium");
     setAlarmEnabled(false);
     setAlarmTime(new Date());
@@ -84,275 +86,122 @@ export default function AddTaskModal({ visible, onClose }: Props) {
 
   const handleAddCategory = () => {
     if (!newCategoryName.trim()) return;
-    addCategory({
-      name: newCategoryName.trim(),
-      color: newCategoryColor,
-      icon: "tag",
-      isCustom: true,
-    });
+    addCategory({ name: newCategoryName.trim(), color: newCategoryColor, icon: "tag", isCustom: true });
     setShowAddCategory(false);
     setNewCategoryName("");
   };
 
-  const styles = StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.5)",
-      justifyContent: "flex-end",
-    },
+  const formatTime = (date: Date) =>
+    date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const s = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
     container: {
-      backgroundColor: colors.card,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      paddingTop: 12,
-      paddingBottom: insets.bottom + 16,
-      maxHeight: "90%",
+      backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      paddingTop: 12, paddingBottom: insets.bottom + 16, maxHeight: "92%",
     },
-    handle: {
-      width: 40,
-      height: 4,
-      backgroundColor: colors.border,
-      borderRadius: 2,
-      alignSelf: "center",
-      marginBottom: 20,
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 20,
-      marginBottom: 24,
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: "700",
-      color: colors.foreground,
-      fontFamily: "Inter_700Bold",
-    },
-    closeBtn: {
-      padding: 4,
-    },
-    content: {
-      paddingHorizontal: 20,
-    },
+    handle: { width: 40, height: 4, backgroundColor: colors.border, borderRadius: 2, alignSelf: "center", marginBottom: 20 },
+    header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 24 },
+    headerTitle: { fontSize: 20, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold" },
+    content: { paddingHorizontal: 20 },
     label: {
-      fontSize: 13,
-      fontWeight: "600",
-      color: colors.mutedForeground,
-      marginBottom: 8,
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
-      fontFamily: "Inter_600SemiBold",
+      fontSize: 12, fontWeight: "700", color: colors.mutedForeground,
+      marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: "Inter_700Bold",
     },
     titleRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.muted,
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      marginBottom: 20,
+      flexDirection: "row", alignItems: "center",
+      backgroundColor: colors.muted, borderRadius: 14, paddingHorizontal: 14, marginBottom: 20,
     },
-    titleInput: {
-      flex: 1,
-      fontSize: 16,
-      color: colors.foreground,
-      paddingVertical: 14,
-      fontFamily: "Inter_400Regular",
-    },
-    alarmIconBtn: {
-      padding: 6,
-    },
-    categoriesScroll: {
-      flexDirection: "row",
-      marginBottom: 20,
-    },
-    categoryChip: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 20,
-      marginRight: 8,
-      borderWidth: 2,
-      gap: 6,
-    },
-    categoryChipText: {
-      fontSize: 13,
-      fontWeight: "600",
-      fontFamily: "Inter_600SemiBold",
-    },
-    addCategoryChip: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 20,
-      marginRight: 8,
-      borderWidth: 2,
-      borderStyle: "dashed",
-      gap: 6,
-    },
-    priorityRow: {
-      flexDirection: "row",
-      gap: 10,
-      marginBottom: 20,
-    },
-    priorityBtn: {
-      flex: 1,
-      paddingVertical: 10,
-      borderRadius: 10,
-      alignItems: "center",
-      borderWidth: 2,
-    },
-    priorityText: {
-      fontSize: 13,
-      fontWeight: "600",
-      fontFamily: "Inter_600SemiBold",
-    },
+    titleInput: { flex: 1, fontSize: 16, color: colors.foreground, paddingVertical: 14, fontFamily: "Inter_400Regular" },
+    alarmIconBtn: { padding: 6 },
     alarmRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      backgroundColor: colors.muted,
-      borderRadius: 12,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      marginBottom: 16,
+      flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+      backgroundColor: colors.muted, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12,
     },
-    alarmRowLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 10,
-    },
-    alarmLabel: {
-      fontSize: 15,
-      color: colors.foreground,
-      fontFamily: "Inter_500Medium",
-    },
+    alarmRowLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+    alarmLabel: { fontSize: 15, color: colors.foreground, fontFamily: "Inter_500Medium" },
     alarmTimeBtn: {
-      backgroundColor: colors.primary + "20",
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      marginBottom: 16,
+      backgroundColor: colors.primary + "20", borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 10, marginBottom: 16, alignItems: "center",
     },
-    alarmTimeText: {
-      color: colors.primary,
-      fontSize: 14,
-      fontWeight: "600",
-      fontFamily: "Inter_600SemiBold",
-      textAlign: "center",
+    alarmTimeText: { color: colors.primary, fontSize: 15, fontWeight: "700", fontFamily: "Inter_700Bold" },
+    categoriesSection: { marginBottom: 20 },
+    categoryRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    categoryChip: {
+      flexDirection: "row", alignItems: "center",
+      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
+      borderWidth: 1.5, gap: 5,
     },
-    notesInput: {
-      backgroundColor: colors.muted,
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      fontSize: 15,
-      color: colors.foreground,
-      minHeight: 80,
-      marginBottom: 24,
-      fontFamily: "Inter_400Regular",
+    categoryChipText: { fontSize: 13, fontWeight: "600", fontFamily: "Inter_600SemiBold" },
+    addCatTrigger: {
+      flexDirection: "row", alignItems: "center",
+      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
+      borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.border, gap: 5,
     },
-    submitBtn: {
-      backgroundColor: colors.primary,
-      borderRadius: 14,
-      paddingVertical: 16,
-      alignItems: "center",
-    },
-    submitText: {
-      color: "#ffffff",
-      fontSize: 16,
-      fontWeight: "700",
-      fontFamily: "Inter_700Bold",
-    },
+    addCatTriggerText: { fontSize: 13, fontWeight: "600", color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" },
     addCategorySection: {
-      backgroundColor: colors.muted,
-      borderRadius: 12,
-      padding: 14,
-      marginBottom: 16,
+      backgroundColor: colors.muted, borderRadius: 14, padding: 16, marginTop: 12,
     },
+    addCatHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+    addCatTitle: { fontSize: 14, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold" },
     addCategoryInput: {
-      backgroundColor: colors.card,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      fontSize: 15,
-      color: colors.foreground,
-      marginBottom: 12,
-      fontFamily: "Inter_400Regular",
+      backgroundColor: colors.card, borderRadius: 10,
+      paddingHorizontal: 12, paddingVertical: 10,
+      fontSize: 15, color: colors.foreground, marginBottom: 12, fontFamily: "Inter_400Regular",
     },
-    colorPicker: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 8,
-      marginBottom: 12,
+    colorPickerLabel: { fontSize: 11, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginBottom: 8 },
+    colorPicker: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
+    colorDot: { width: 30, height: 30, borderRadius: 15, borderWidth: 3 },
+    addCatBtn: { backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 10, alignItems: "center" },
+    addCatBtnText: { color: "#fff", fontWeight: "700", fontFamily: "Inter_700Bold", fontSize: 14 },
+    priorityRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
+    priorityBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center", borderWidth: 2 },
+    priorityText: { fontSize: 13, fontWeight: "700", fontFamily: "Inter_700Bold" },
+    notesInput: {
+      backgroundColor: colors.muted, borderRadius: 14,
+      paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, color: colors.foreground, minHeight: 80,
+      marginBottom: 24, fontFamily: "Inter_400Regular", textAlignVertical: "top",
     },
-    colorDot: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      borderWidth: 2,
-    },
-    addCatBtn: {
-      backgroundColor: colors.primary,
-      borderRadius: 8,
-      paddingVertical: 8,
-      alignItems: "center",
-    },
-    addCatBtnText: {
-      color: "#fff",
-      fontWeight: "600",
-      fontFamily: "Inter_600SemiBold",
-    },
+    submitBtn: { backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 16, alignItems: "center" },
+    submitText: { color: "#ffffff", fontSize: 16, fontWeight: "700", fontFamily: "Inter_700Bold" },
   });
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
+      <Pressable style={s.overlay} onPress={onClose}>
         <Pressable onPress={() => {}}>
-          <View style={styles.container}>
-            <View style={styles.handle} />
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>New Task</Text>
-              <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <View style={s.container}>
+            <View style={s.handle} />
+            <View style={s.header}>
+              <Text style={s.headerTitle}>New Task</Text>
+              <TouchableOpacity onPress={onClose}>
                 <Feather name="x" size={22} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              <Text style={styles.label}>Task Title</Text>
-              <View style={styles.titleRow}>
+            <ScrollView style={s.content} showsVerticalScrollIndicator={false}>
+              <Text style={s.label}>Task Title</Text>
+              <View style={s.titleRow}>
                 <TextInput
-                  style={styles.titleInput}
+                  style={s.titleInput}
                   placeholder="What do you need to do?"
                   placeholderTextColor={colors.mutedForeground}
                   value={title}
                   onChangeText={setTitle}
                   autoFocus
                 />
-                <TouchableOpacity
-                  style={styles.alarmIconBtn}
-                  onPress={() => setAlarmEnabled(!alarmEnabled)}
-                >
-                  <Feather
-                    name="clock"
-                    size={20}
-                    color={alarmEnabled ? colors.primary : colors.mutedForeground}
-                  />
+                <TouchableOpacity style={s.alarmIconBtn} onPress={() => setAlarmEnabled(!alarmEnabled)}>
+                  <Feather name="clock" size={20} color={alarmEnabled ? colors.primary : colors.mutedForeground} />
                 </TouchableOpacity>
               </View>
 
               {alarmEnabled && (
                 <>
-                  <View style={styles.alarmRow}>
-                    <View style={styles.alarmRowLeft}>
+                  <View style={s.alarmRow}>
+                    <View style={s.alarmRowLeft}>
                       <Feather name="bell" size={18} color={colors.primary} />
-                      <Text style={styles.alarmLabel}>Alarm Reminder</Text>
+                      <Text style={s.alarmLabel}>Alarm Reminder</Text>
                     </View>
                     <Switch
                       value={alarmEnabled}
@@ -361,13 +210,8 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                       thumbColor="#fff"
                     />
                   </View>
-                  <TouchableOpacity
-                    style={styles.alarmTimeBtn}
-                    onPress={() => setShowTimePicker(true)}
-                  >
-                    <Text style={styles.alarmTimeText}>
-                      Set time: {formatTime(alarmTime)}
-                    </Text>
+                  <TouchableOpacity style={s.alarmTimeBtn} onPress={() => setShowTimePicker(true)}>
+                    <Text style={s.alarmTimeText}>Set time: {formatTime(alarmTime)}</Text>
                   </TouchableOpacity>
                   {showTimePicker && (
                     <DateTimePicker
@@ -383,20 +227,16 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                 </>
               )}
 
-              <Text style={styles.label}>Category</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ marginBottom: 20 }}
-              >
-                <View style={styles.categoriesScroll}>
-                  {categories.map((cat: Category) => {
+              <Text style={s.label}>Category</Text>
+              <View style={s.categoriesSection}>
+                <View style={s.categoryRow}>
+                  {visibleCategories.map((cat: Category) => {
                     const isSelected = selectedCategory === cat.id;
                     return (
                       <TouchableOpacity
                         key={cat.id}
                         style={[
-                          styles.categoryChip,
+                          s.categoryChip,
                           {
                             backgroundColor: isSelected ? cat.color + "20" : "transparent",
                             borderColor: isSelected ? cat.color : colors.border,
@@ -406,76 +246,72 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                       >
                         <Feather
                           name={cat.icon as any}
-                          size={14}
+                          size={13}
                           color={isSelected ? cat.color : colors.mutedForeground}
                         />
-                        <Text
-                          style={[
-                            styles.categoryChipText,
-                            {
-                              color: isSelected ? cat.color : colors.mutedForeground,
-                            },
-                          ]}
-                        >
+                        <Text style={[s.categoryChipText, { color: isSelected ? cat.color : colors.mutedForeground }]}>
                           {cat.name}
                         </Text>
                       </TouchableOpacity>
                     );
                   })}
                   <TouchableOpacity
-                    style={[
-                      styles.addCategoryChip,
-                      { borderColor: colors.border },
-                    ]}
+                    style={s.addCatTrigger}
                     onPress={() => setShowAddCategory(!showAddCategory)}
                   >
-                    <Feather name="plus" size={14} color={colors.mutedForeground} />
-                    <Text style={[styles.categoryChipText, { color: colors.mutedForeground }]}>
-                      Add
-                    </Text>
+                    <Feather name="plus" size={13} color={colors.mutedForeground} />
+                    <Text style={s.addCatTriggerText}>Add</Text>
                   </TouchableOpacity>
                 </View>
-              </ScrollView>
 
-              {showAddCategory && (
-                <View style={styles.addCategorySection}>
-                  <TextInput
-                    style={styles.addCategoryInput}
-                    placeholder="Category name"
-                    placeholderTextColor={colors.mutedForeground}
-                    value={newCategoryName}
-                    onChangeText={setNewCategoryName}
-                  />
-                  <View style={styles.colorPicker}>
-                    {CATEGORY_COLORS.map((c) => (
-                      <TouchableOpacity
-                        key={c}
-                        style={[
-                          styles.colorDot,
-                          {
-                            backgroundColor: c,
-                            borderColor: newCategoryColor === c ? colors.foreground : "transparent",
-                          },
-                        ]}
-                        onPress={() => setNewCategoryColor(c)}
-                      />
-                    ))}
+                {showAddCategory && (
+                  <View style={s.addCategorySection}>
+                    <View style={s.addCatHeader}>
+                      <Text style={s.addCatTitle}>New Category</Text>
+                      <TouchableOpacity onPress={() => setShowAddCategory(false)}>
+                        <Feather name="x" size={18} color={colors.mutedForeground} />
+                      </TouchableOpacity>
+                    </View>
+                    <TextInput
+                      style={s.addCategoryInput}
+                      placeholder="Category name"
+                      placeholderTextColor={colors.mutedForeground}
+                      value={newCategoryName}
+                      onChangeText={setNewCategoryName}
+                      autoFocus
+                    />
+                    <Text style={s.colorPickerLabel}>Pick a color</Text>
+                    <View style={s.colorPicker}>
+                      {CATEGORY_COLORS.map((c) => (
+                        <TouchableOpacity
+                          key={c}
+                          style={[
+                            s.colorDot,
+                            {
+                              backgroundColor: c,
+                              borderColor: newCategoryColor === c ? colors.foreground : "transparent",
+                            },
+                          ]}
+                          onPress={() => setNewCategoryColor(c)}
+                        />
+                      ))}
+                    </View>
+                    <TouchableOpacity style={s.addCatBtn} onPress={handleAddCategory}>
+                      <Text style={s.addCatBtnText}>Add Category</Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity style={styles.addCatBtn} onPress={handleAddCategory}>
-                    <Text style={styles.addCatBtnText}>Add Category</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+                )}
+              </View>
 
-              <Text style={styles.label}>Priority</Text>
-              <View style={styles.priorityRow}>
+              <Text style={s.label}>Priority</Text>
+              <View style={s.priorityRow}>
                 {PRIORITY_OPTIONS.map((opt) => {
                   const isSelected = priority === opt.value;
                   return (
                     <TouchableOpacity
                       key={opt.value}
                       style={[
-                        styles.priorityBtn,
+                        s.priorityBtn,
                         {
                           backgroundColor: isSelected ? opt.color + "20" : "transparent",
                           borderColor: isSelected ? opt.color : colors.border,
@@ -483,12 +319,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                       ]}
                       onPress={() => setPriority(opt.value)}
                     >
-                      <Text
-                        style={[
-                          styles.priorityText,
-                          { color: isSelected ? opt.color : colors.mutedForeground },
-                        ]}
-                      >
+                      <Text style={[s.priorityText, { color: isSelected ? opt.color : colors.mutedForeground }]}>
                         {opt.label}
                       </Text>
                     </TouchableOpacity>
@@ -496,20 +327,19 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                 })}
               </View>
 
-              <Text style={styles.label}>Notes (optional)</Text>
+              <Text style={s.label}>Notes (optional)</Text>
               <TextInput
-                style={styles.notesInput}
+                style={s.notesInput}
                 placeholder="Add notes..."
                 placeholderTextColor={colors.mutedForeground}
                 value={notes}
                 onChangeText={setNotes}
                 multiline
                 numberOfLines={3}
-                textAlignVertical="top"
               />
 
-              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-                <Text style={styles.submitText}>Add Task</Text>
+              <TouchableOpacity style={s.submitBtn} onPress={handleSubmit}>
+                <Text style={s.submitText}>Add Task</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>

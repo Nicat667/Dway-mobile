@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 type Comment = { id: string; user: string; text: string; time: string; avatarColor: string };
@@ -97,12 +98,12 @@ const CHALLENGES = [
 export default function CommunityScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { joinedChallenges, toggleChallenge } = useApp();
   const [activeTab, setActiveTab] = useState<"feed" | "challenges">("feed");
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [activeCommentPost, setActiveCommentPost] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
-  const [joinedChallenges, setJoinedChallenges] = useState<Set<string>>(new Set());
 
   const toggleLike = (postId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -140,14 +141,9 @@ export default function CommunityScreen() {
     setActiveCommentPost(null);
   };
 
-  const toggleChallenge = (id: string) => {
+  const handleToggleChallenge = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setJoinedChallenges((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    toggleChallenge(id);
   };
 
   const activePost = posts.find((p) => p.id === activeCommentPost);
@@ -359,7 +355,7 @@ export default function CommunityScreen() {
                         backgroundColor: joinedChallenges.has(challenge.id) ? challenge.color : "transparent",
                       },
                     ]}
-                    onPress={() => toggleChallenge(challenge.id)}
+                    onPress={() => handleToggleChallenge(challenge.id)}
                   >
                     <Text style={[styles.joinBtnText, { color: joinedChallenges.has(challenge.id) ? "#fff" : challenge.color }]}>
                       {joinedChallenges.has(challenge.id) ? "Joined" : "Join"}

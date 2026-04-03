@@ -43,6 +43,8 @@ type AppContextType = {
   tasks: Task[];
   categories: Category[];
   profileSettings: ProfileSettings;
+  joinedChallenges: Set<string>;
+  toggleChallenge: (id: string) => void;
   addTask: (task: Omit<Task, "id" | "createdAt">) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
@@ -135,6 +137,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     alarmSound: "default",
     notificationsEnabled: true,
   });
+  const [joinedChallenges, setJoinedChallenges] = useState<Set<string>>(new Set());
+
+  const toggleChallenge = useCallback((id: string) => {
+    setJoinedChallenges((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -320,6 +332,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         tasks,
         categories,
         profileSettings,
+        joinedChallenges,
+        toggleChallenge,
         addTask,
         updateTask,
         deleteTask,
