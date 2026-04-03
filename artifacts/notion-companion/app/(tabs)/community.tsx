@@ -36,7 +36,7 @@ const INITIAL_POSTS: Post[] = [
   {
     id: "1", user: "Alex M.", avatar: "A", avatarColor: "#6366f1",
     time: "2h ago", likes: 24, category: "Sport", categoryColor: "#f59e0b",
-    message: "Just completed my 30-day workout challenge! Consistency is everything. 💪",
+    message: "Just completed my 30-day workout challenge! Consistency is everything.",
     comments: [
       { id: "c1", user: "Sara K.", text: "Incredible! I'm on day 12 of mine. So inspiring!", time: "1h ago", avatarColor: "#22c55e" },
       { id: "c2", user: "Omar T.", text: "That's dedication right there. Well done!", time: "45m ago", avatarColor: "#f59e0b" },
@@ -95,6 +95,15 @@ const CHALLENGES = [
   },
 ];
 
+const POST_CATEGORIES = [
+  { label: "Work", color: "#6366f1" },
+  { label: "Sport", color: "#f59e0b" },
+  { label: "Learning", color: "#3b82f6" },
+  { label: "Personal", color: "#ec4899" },
+  { label: "Health", color: "#22c55e" },
+  { label: "Other", color: "#94a3b8" },
+];
+
 export default function CommunityScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -104,6 +113,11 @@ export default function CommunityScreen() {
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [activeCommentPost, setActiveCommentPost] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+
+  // New post state
+  const [showNewPost, setShowNewPost] = useState(false);
+  const [newPostText, setNewPostText] = useState("");
+  const [newPostCategory, setNewPostCategory] = useState(POST_CATEGORIES[0]);
 
   const toggleLike = (postId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -141,6 +155,27 @@ export default function CommunityScreen() {
     setActiveCommentPost(null);
   };
 
+  const submitPost = () => {
+    if (!newPostText.trim()) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const newPost: Post = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      user: "You",
+      avatar: "Y",
+      avatarColor: "#6366f1",
+      time: "Just now",
+      message: newPostText.trim(),
+      likes: 0,
+      comments: [],
+      category: newPostCategory.label,
+      categoryColor: newPostCategory.color,
+    };
+    setPosts((prev) => [newPost, ...prev]);
+    setNewPostText("");
+    setNewPostCategory(POST_CATEGORIES[0]);
+    setShowNewPost(false);
+  };
+
   const handleToggleChallenge = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     toggleChallenge(id);
@@ -154,9 +189,20 @@ export default function CommunityScreen() {
       paddingHorizontal: 20,
       paddingTop: Platform.OS === "web" ? insets.top + 67 : insets.top + 16,
       paddingBottom: 8,
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "space-between",
     },
+    headerLeft: {},
     title: { fontSize: 28, fontWeight: "800", color: colors.foreground, fontFamily: "Inter_700Bold" },
     subtitle: { fontSize: 14, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginTop: 4 },
+    newPostBtn: {
+      flexDirection: "row", alignItems: "center", gap: 6,
+      backgroundColor: colors.primary, borderRadius: 20,
+      paddingHorizontal: 14, paddingVertical: 8,
+      marginBottom: 4,
+    },
+    newPostBtnText: { fontSize: 13, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" },
     tabRow: {
       flexDirection: "row", marginHorizontal: 20, marginTop: 20, marginBottom: 16,
       backgroundColor: colors.muted, borderRadius: 12, padding: 4,
@@ -183,20 +229,6 @@ export default function CommunityScreen() {
     postActions: { flexDirection: "row", gap: 20 },
     actionBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
     actionText: { fontSize: 13, fontFamily: "Inter_500Medium" },
-    commentsSection: {
-      marginTop: 12, paddingTop: 12,
-      borderTopWidth: 1, borderTopColor: colors.border,
-    },
-    commentItem: { flexDirection: "row", marginBottom: 10 },
-    commentAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", marginRight: 8 },
-    commentAvatarText: { fontSize: 11, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" },
-    commentBubble: {
-      flex: 1, backgroundColor: colors.muted,
-      borderRadius: 12, padding: 10,
-    },
-    commentUser: { fontSize: 12, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold" },
-    commentText: { fontSize: 13, color: colors.foreground, fontFamily: "Inter_400Regular", lineHeight: 18, marginTop: 2 },
-    commentTime: { fontSize: 10, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginTop: 3 },
     challengeCard: {
       backgroundColor: colors.card, borderRadius: 18, padding: 18,
       marginBottom: 12, marginHorizontal: 20,
@@ -224,12 +256,22 @@ export default function CommunityScreen() {
       width: 40, height: 4, backgroundColor: colors.border,
       borderRadius: 2, alignSelf: "center", marginBottom: 16,
     },
+    modalHeader: {
+      flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+      paddingHorizontal: 20, marginBottom: 16,
+    },
     modalTitle: {
-      fontSize: 17, fontWeight: "700", color: colors.foreground,
-      fontFamily: "Inter_700Bold", paddingHorizontal: 20, marginBottom: 16,
+      fontSize: 17, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold",
     },
     commentsList: { paddingHorizontal: 20, maxHeight: 300 },
     noComments: { textAlign: "center", color: colors.mutedForeground, fontFamily: "Inter_400Regular", paddingVertical: 20 },
+    commentItem: { flexDirection: "row" },
+    commentAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", marginRight: 8 },
+    commentAvatarText: { fontSize: 11, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" },
+    commentBubble: { flex: 1, backgroundColor: colors.muted, borderRadius: 12, padding: 10 },
+    commentUser: { fontSize: 12, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold" },
+    commentText: { fontSize: 13, color: colors.foreground, fontFamily: "Inter_400Regular", lineHeight: 18, marginTop: 2 },
+    commentTime: { fontSize: 10, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginTop: 3 },
     commentInputRow: {
       flexDirection: "row", alignItems: "center",
       paddingHorizontal: 16, paddingVertical: 12,
@@ -245,6 +287,36 @@ export default function CommunityScreen() {
       width: 38, height: 38, borderRadius: 19,
       backgroundColor: colors.primary, alignItems: "center", justifyContent: "center",
     },
+    // New post modal
+    newPostContainer: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      paddingTop: 12, paddingBottom: insets.bottom + 16,
+    },
+    newPostTextInput: {
+      marginHorizontal: 20, marginBottom: 16,
+      backgroundColor: colors.muted, borderRadius: 14,
+      paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, color: colors.foreground,
+      fontFamily: "Inter_400Regular", minHeight: 100,
+      textAlignVertical: "top",
+    },
+    catLabel: {
+      fontSize: 12, fontWeight: "700", color: colors.mutedForeground,
+      fontFamily: "Inter_700Bold", marginBottom: 8, marginHorizontal: 20,
+      textTransform: "uppercase", letterSpacing: 0.8,
+    },
+    catRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 20, marginBottom: 20 },
+    catChip: {
+      paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16,
+      borderWidth: 1.5,
+    },
+    catChipText: { fontSize: 13, fontWeight: "600", fontFamily: "Inter_600SemiBold" },
+    publishBtn: {
+      marginHorizontal: 20,
+      backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 15, alignItems: "center",
+    },
+    publishText: { color: "#fff", fontSize: 15, fontWeight: "700", fontFamily: "Inter_700Bold" },
   });
 
   return (
@@ -256,8 +328,22 @@ export default function CommunityScreen() {
         }}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Community</Text>
-          <Text style={styles.subtitle}>Share your wins, find your tribe</Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>Community</Text>
+            <Text style={styles.subtitle}>Share your wins, find your tribe</Text>
+          </View>
+          {activeTab === "feed" && (
+            <TouchableOpacity
+              style={styles.newPostBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowNewPost(true);
+              }}
+            >
+              <Feather name="edit-2" size={14} color="#fff" />
+              <Text style={styles.newPostBtnText}>New Post</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.tabRow}>
@@ -300,7 +386,7 @@ export default function CommunityScreen() {
                   <TouchableOpacity style={styles.actionBtn} onPress={() => setActiveCommentPost(post.id)}>
                     <Feather name="message-circle" size={16} color={activeCommentPost === post.id ? colors.primary : colors.mutedForeground} />
                     <Text style={[styles.actionText, { color: activeCommentPost === post.id ? colors.primary : colors.mutedForeground }]}>
-                      {post.comments.length} {post.comments.length === 1 ? "comment" : "comments"}
+                      {post.comments.length}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -342,14 +428,80 @@ export default function CommunityScreen() {
             ))}
       </ScrollView>
 
-      {/* Comment modal */}
+      {/* New Post Modal */}
+      <Modal visible={showNewPost} transparent animationType="slide" onRequestClose={() => setShowNewPost(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowNewPost(false)}>
+          <Pressable onPress={() => {}}>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+              <View style={styles.newPostContainer}>
+                <View style={styles.modalHandle} />
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>New Post</Text>
+                  <TouchableOpacity onPress={() => setShowNewPost(false)}>
+                    <Feather name="x" size={22} color={colors.mutedForeground} />
+                  </TouchableOpacity>
+                </View>
+
+                <TextInput
+                  style={styles.newPostTextInput}
+                  placeholder="Share your win, progress, or tip..."
+                  placeholderTextColor={colors.mutedForeground}
+                  value={newPostText}
+                  onChangeText={setNewPostText}
+                  multiline
+                  autoFocus
+                />
+
+                <Text style={styles.catLabel}>Category</Text>
+                <View style={styles.catRow}>
+                  {POST_CATEGORIES.map((cat) => {
+                    const active = newPostCategory.label === cat.label;
+                    return (
+                      <TouchableOpacity
+                        key={cat.label}
+                        style={[
+                          styles.catChip,
+                          {
+                            backgroundColor: active ? cat.color + "20" : "transparent",
+                            borderColor: active ? cat.color : colors.border,
+                          },
+                        ]}
+                        onPress={() => setNewPostCategory(cat)}
+                      >
+                        <Text style={[styles.catChipText, { color: active ? cat.color : colors.mutedForeground }]}>
+                          {cat.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.publishBtn, { opacity: newPostText.trim() ? 1 : 0.5 }]}
+                  onPress={submitPost}
+                  disabled={!newPostText.trim()}
+                >
+                  <Text style={styles.publishText}>Publish Post</Text>
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Comment Modal */}
       <Modal visible={!!activeCommentPost} transparent animationType="slide" onRequestClose={() => setActiveCommentPost(null)}>
         <Pressable style={styles.modalOverlay} onPress={() => setActiveCommentPost(null)}>
           <Pressable onPress={() => {}}>
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
               <View style={styles.modalContainer}>
                 <View style={styles.modalHandle} />
-                <Text style={styles.modalTitle}>Comments</Text>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Comments</Text>
+                  <TouchableOpacity onPress={() => setActiveCommentPost(null)}>
+                    <Feather name="x" size={22} color={colors.mutedForeground} />
+                  </TouchableOpacity>
+                </View>
                 <ScrollView style={styles.commentsList}>
                   {activePost?.comments.length === 0 && (
                     <Text style={styles.noComments}>No comments yet. Be the first!</Text>
