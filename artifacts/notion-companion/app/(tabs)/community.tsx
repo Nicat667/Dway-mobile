@@ -298,36 +298,12 @@ export default function CommunityScreen() {
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.actionBtn} onPress={() => setActiveCommentPost(post.id)}>
-                    <Feather name="message-circle" size={16} color={colors.mutedForeground} />
-                    <Text style={[styles.actionText, { color: colors.mutedForeground }]}>{post.comments.length}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionBtn}>
-                    <Feather name="share-2" size={16} color={colors.mutedForeground} />
+                    <Feather name="message-circle" size={16} color={activeCommentPost === post.id ? colors.primary : colors.mutedForeground} />
+                    <Text style={[styles.actionText, { color: activeCommentPost === post.id ? colors.primary : colors.mutedForeground }]}>
+                      {post.comments.length} {post.comments.length === 1 ? "comment" : "comments"}
+                    </Text>
                   </TouchableOpacity>
                 </View>
-                {post.comments.length > 0 && (
-                  <View style={styles.commentsSection}>
-                    {post.comments.slice(-2).map((c) => (
-                      <View key={c.id} style={styles.commentItem}>
-                        <View style={[styles.commentAvatar, { backgroundColor: c.avatarColor }]}>
-                          <Text style={styles.commentAvatarText}>{c.user.charAt(0)}</Text>
-                        </View>
-                        <View style={styles.commentBubble}>
-                          <Text style={styles.commentUser}>{c.user}</Text>
-                          <Text style={styles.commentText}>{c.text}</Text>
-                          <Text style={styles.commentTime}>{c.time}</Text>
-                        </View>
-                      </View>
-                    ))}
-                    {post.comments.length > 2 && (
-                      <TouchableOpacity onPress={() => setActiveCommentPost(post.id)}>
-                        <Text style={{ color: colors.primary, fontSize: 13, fontFamily: "Inter_500Medium", marginTop: 4 }}>
-                          See all {post.comments.length} comments
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
               </View>
             ))
           : CHALLENGES.map((challenge) => (

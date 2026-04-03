@@ -327,6 +327,112 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Partners</Text>
+          <Text style={{ fontSize: 13, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginBottom: 12 }}>
+            Exclusive perks from our partners — just for using Notion Companion.
+          </Text>
+          {[
+            {
+              id: "p1",
+              name: "Headspace",
+              tagline: "Mindfulness & Focus",
+              desc: "3 months of Headspace Plus free when you complete your first 30 tasks.",
+              color: "#f97316",
+              icon: "sun",
+              badge: "3 Months Free",
+            },
+            {
+              id: "p2",
+              name: "Notion",
+              tagline: "All-in-one workspace",
+              desc: "Get 6 months of Notion Plus plan free and sync your tasks directly.",
+              color: "#6366f1",
+              icon: "book",
+              badge: "6 Months Free",
+            },
+            {
+              id: "p3",
+              name: "Calm",
+              tagline: "Sleep & Relaxation",
+              desc: "Unlock 1-year Calm Premium access when you maintain a 7-day streak.",
+              color: "#3b82f6",
+              icon: "moon",
+              badge: "1 Year Access",
+            },
+            {
+              id: "p4",
+              name: "Spotify",
+              tagline: "Music & Podcasts",
+              desc: "2 months of Spotify Premium for free to keep you focused while you work.",
+              color: "#22c55e",
+              icon: "music",
+              badge: "2 Months Free",
+            },
+            {
+              id: "p5",
+              name: "Coursera",
+              tagline: "Online Learning",
+              desc: "30% off any Coursera course or specialization for active members.",
+              color: "#06b6d4",
+              icon: "award",
+              badge: "30% Off",
+            },
+          ].map((partner, i, arr) => (
+            <View
+              key={partner.id}
+              style={[
+                styles.settingCard,
+                { marginBottom: i < arr.length - 1 ? 10 : 0, overflow: "hidden" },
+              ]}
+            >
+              <View style={{ flexDirection: "row", alignItems: "flex-start", padding: 16, gap: 12 }}>
+                <View
+                  style={[
+                    styles.settingIcon,
+                    { backgroundColor: partner.color + "20", width: 46, height: 46, borderRadius: 14 },
+                  ]}
+                >
+                  <Feather name={partner.icon as any} size={20} color={partner.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold" }}>
+                      {partner.name}
+                    </Text>
+                    <View style={{ backgroundColor: partner.color + "18", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
+                      <Text style={{ fontSize: 10, fontWeight: "700", color: partner.color, fontFamily: "Inter_700Bold" }}>
+                        {partner.badge}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: 11, color: partner.color, fontFamily: "Inter_500Medium", marginBottom: 6 }}>
+                    {partner.tagline}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: colors.mutedForeground, fontFamily: "Inter_400Regular", lineHeight: 18 }}>
+                    {partner.desc}
+                  </Text>
+                </View>
+              </View>
+              <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginHorizontal: 16 }} />
+              <TouchableOpacity
+                style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12 }}
+                onPress={() =>
+                  Alert.alert(partner.name, `Your exclusive offer: ${partner.desc}\n\nTap OK to visit the partner portal.`, [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "View Offer", style: "default" },
+                  ])
+                }
+              >
+                <Feather name="external-link" size={14} color={partner.color} />
+                <Text style={{ fontSize: 13, fontWeight: "700", color: partner.color, fontFamily: "Inter_700Bold" }}>
+                  View Offer
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Data</Text>
           <View style={styles.settingCard}>
             <TouchableOpacity

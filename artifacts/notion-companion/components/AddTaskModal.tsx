@@ -1,5 +1,4 @@
 import { Feather } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
 import {
@@ -20,10 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Category, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
-type Props = {
-  visible: boolean;
-  onClose: () => void;
-};
+type Props = { visible: boolean; onClose: () => void };
 
 const PRIORITY_OPTIONS = [
   { value: "low" as const, label: "Low", color: "#22c55e" },
@@ -47,12 +43,32 @@ export default function AddTaskModal({ visible, onClose }: Props) {
   const [selectedCategory, setSelectedCategory] = useState(visibleCategories[0]?.id ?? "");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [alarmEnabled, setAlarmEnabled] = useState(false);
-  const [alarmTime, setAlarmTime] = useState(new Date());
-  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // Custom time inputs
+  const [alarmHour, setAlarmHour] = useState("9");
+  const [alarmMinute, setAlarmMinute] = useState("00");
+  const [alarmAmPm, setAlarmAmPm] = useState<"AM" | "PM">("AM");
+
   const [notes, setNotes] = useState("");
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryColor, setNewCategoryColor] = useState(CATEGORY_COLORS[0]);
+
+  const getAlarmDate = () => {
+    const now = new Date();
+    let h = Math.max(1, Math.min(12, parseInt(alarmHour) || 12));
+    const m = Math.max(0, Math.min(59, parseInt(alarmMinute) || 0));
+    if (alarmAmPm === "PM" && h !== 12) h += 12;
+    if (alarmAmPm === "AM" && h === 12) h = 0;
+    now.setHours(h, m, 0, 0);
+    return now;
+  };
+
+  const formatAlarmPreview = () => {
+    const h = Math.max(1, Math.min(12, parseInt(alarmHour) || 12));
+    const m = Math.max(0, Math.min(59, parseInt(alarmMinute) || 0));
+    return `${h}:${m.toString().padStart(2, "0")} ${alarmAmPm}`;
+  };
 
   const handleSubmit = () => {
     if (!title.trim()) {
@@ -66,7 +82,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
       completed: false,
       priority,
       alarmEnabled,
-      alarmTime: alarmEnabled ? alarmTime.toISOString() : undefined,
+      alarmTime: alarmEnabled ? getAlarmDate().toISOString() : undefined,
       notes: notes.trim() || undefined,
     });
     resetForm();
@@ -78,7 +94,9 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     setSelectedCategory(visibleCategories[0]?.id ?? "");
     setPriority("medium");
     setAlarmEnabled(false);
-    setAlarmTime(new Date());
+    setAlarmHour("9");
+    setAlarmMinute("00");
+    setAlarmAmPm("AM");
     setNotes("");
     setShowAddCategory(false);
     setNewCategoryName("");
@@ -90,9 +108,6 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     setShowAddCategory(false);
     setNewCategoryName("");
   };
-
-  const formatTime = (date: Date) =>
-    date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   const s = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
@@ -114,17 +129,44 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     },
     titleInput: { flex: 1, fontSize: 16, color: colors.foreground, paddingVertical: 14, fontFamily: "Inter_400Regular" },
     alarmIconBtn: { padding: 6 },
-    alarmRow: {
-      flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-      backgroundColor: colors.muted, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12,
+    // Alarm section
+    alarmBox: {
+      backgroundColor: colors.muted, borderRadius: 16,
+      padding: 16, marginBottom: 20,
     },
-    alarmRowLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-    alarmLabel: { fontSize: 15, color: colors.foreground, fontFamily: "Inter_500Medium" },
-    alarmTimeBtn: {
-      backgroundColor: colors.primary + "20", borderRadius: 10,
-      paddingHorizontal: 14, paddingVertical: 10, marginBottom: 16, alignItems: "center",
+    alarmBoxHeader: {
+      flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14,
     },
-    alarmTimeText: { color: colors.primary, fontSize: 15, fontWeight: "700", fontFamily: "Inter_700Bold" },
+    alarmBoxLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+    alarmBoxTitle: { fontSize: 15, fontWeight: "600", color: colors.foreground, fontFamily: "Inter_600SemiBold" },
+    alarmPreview: {
+      fontSize: 22, fontWeight: "800", color: colors.primary,
+      fontFamily: "Inter_700Bold", textAlign: "center", marginBottom: 14,
+    },
+    alarmInputRow: { flexDirection: "row", alignItems: "flex-end", gap: 6, marginBottom: 12 },
+    alarmInputWrap: { flex: 1, alignItems: "center" },
+    alarmInput: {
+      width: "100%", textAlign: "center",
+      backgroundColor: colors.card, borderRadius: 10,
+      paddingVertical: 10, fontSize: 20, fontWeight: "700",
+      color: colors.foreground, fontFamily: "Inter_700Bold",
+      borderWidth: 1.5, borderColor: colors.border,
+    },
+    alarmInputLabel: {
+      fontSize: 11, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginTop: 4, textAlign: "center",
+    },
+    colonText: { fontSize: 22, fontWeight: "700", color: colors.mutedForeground, fontFamily: "Inter_700Bold", marginBottom: 22 },
+    ampmRow: { flexDirection: "row", gap: 6 },
+    ampmBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center", borderWidth: 2 },
+    ampmText: { fontSize: 14, fontWeight: "700", fontFamily: "Inter_700Bold" },
+    quickAlarmLabel: { fontSize: 11, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginBottom: 8, marginTop: 4 },
+    quickAlarmRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+    quickAlarmChip: {
+      paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    quickAlarmText: { fontSize: 12, color: colors.foreground, fontFamily: "Inter_500Medium" },
+    // Categories
     categoriesSection: { marginBottom: 20 },
     categoryRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
     categoryChip: {
@@ -139,9 +181,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
       borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.border, gap: 5,
     },
     addCatTriggerText: { fontSize: 13, fontWeight: "600", color: colors.mutedForeground, fontFamily: "Inter_600SemiBold" },
-    addCategorySection: {
-      backgroundColor: colors.muted, borderRadius: 14, padding: 16, marginTop: 12,
-    },
+    addCategorySection: { backgroundColor: colors.muted, borderRadius: 14, padding: 16, marginTop: 12 },
     addCatHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
     addCatTitle: { fontSize: 14, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold" },
     addCategoryInput: {
@@ -154,6 +194,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     colorDot: { width: 30, height: 30, borderRadius: 15, borderWidth: 3 },
     addCatBtn: { backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 10, alignItems: "center" },
     addCatBtnText: { color: "#fff", fontWeight: "700", fontFamily: "Inter_700Bold", fontSize: 14 },
+    // Priority
     priorityRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
     priorityBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center", borderWidth: 2 },
     priorityText: { fontSize: 13, fontWeight: "700", fontFamily: "Inter_700Bold" },
@@ -166,6 +207,15 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     submitBtn: { backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 16, alignItems: "center" },
     submitText: { color: "#ffffff", fontSize: 16, fontWeight: "700", fontFamily: "Inter_700Bold" },
   });
+
+  const QUICK_TIMES = [
+    { label: "7:00 AM", h: "7", m: "00", ap: "AM" as const },
+    { label: "8:30 AM", h: "8", m: "30", ap: "AM" as const },
+    { label: "12:00 PM", h: "12", m: "00", ap: "PM" as const },
+    { label: "3:00 PM", h: "3", m: "00", ap: "PM" as const },
+    { label: "6:00 PM", h: "6", m: "00", ap: "PM" as const },
+    { label: "9:00 PM", h: "9", m: "00", ap: "PM" as const },
+  ];
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -191,17 +241,23 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                   onChangeText={setTitle}
                   autoFocus
                 />
-                <TouchableOpacity style={s.alarmIconBtn} onPress={() => setAlarmEnabled(!alarmEnabled)}>
-                  <Feather name="clock" size={20} color={alarmEnabled ? colors.primary : colors.mutedForeground} />
+                <TouchableOpacity
+                  style={s.alarmIconBtn}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setAlarmEnabled(!alarmEnabled);
+                  }}
+                >
+                  <Feather name="bell" size={20} color={alarmEnabled ? colors.primary : colors.mutedForeground} />
                 </TouchableOpacity>
               </View>
 
               {alarmEnabled && (
-                <>
-                  <View style={s.alarmRow}>
-                    <View style={s.alarmRowLeft}>
-                      <Feather name="bell" size={18} color={colors.primary} />
-                      <Text style={s.alarmLabel}>Alarm Reminder</Text>
+                <View style={s.alarmBox}>
+                  <View style={s.alarmBoxHeader}>
+                    <View style={s.alarmBoxLeft}>
+                      <Feather name="bell" size={16} color={colors.primary} />
+                      <Text style={s.alarmBoxTitle}>Set Alarm Time</Text>
                     </View>
                     <Switch
                       value={alarmEnabled}
@@ -210,21 +266,92 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                       thumbColor="#fff"
                     />
                   </View>
-                  <TouchableOpacity style={s.alarmTimeBtn} onPress={() => setShowTimePicker(true)}>
-                    <Text style={s.alarmTimeText}>Set time: {formatTime(alarmTime)}</Text>
-                  </TouchableOpacity>
-                  {showTimePicker && (
-                    <DateTimePicker
-                      value={alarmTime}
-                      mode="time"
-                      display={Platform.OS === "ios" ? "spinner" : "default"}
-                      onChange={(_, date) => {
-                        setShowTimePicker(Platform.OS === "ios");
-                        if (date) setAlarmTime(date);
-                      }}
-                    />
-                  )}
-                </>
+
+                  <Text style={s.alarmPreview}>{formatAlarmPreview()}</Text>
+
+                  <View style={s.alarmInputRow}>
+                    <View style={s.alarmInputWrap}>
+                      <TextInput
+                        style={s.alarmInput}
+                        value={alarmHour}
+                        onChangeText={(v) => setAlarmHour(v.replace(/[^0-9]/g, "").slice(0, 2))}
+                        keyboardType="number-pad"
+                        maxLength={2}
+                        selectTextOnFocus
+                        placeholder="9"
+                        placeholderTextColor={colors.mutedForeground}
+                      />
+                      <Text style={s.alarmInputLabel}>Hour</Text>
+                    </View>
+                    <Text style={s.colonText}>:</Text>
+                    <View style={s.alarmInputWrap}>
+                      <TextInput
+                        style={s.alarmInput}
+                        value={alarmMinute}
+                        onChangeText={(v) => {
+                          const n = v.replace(/[^0-9]/g, "").slice(0, 2);
+                          setAlarmMinute(n);
+                        }}
+                        keyboardType="number-pad"
+                        maxLength={2}
+                        selectTextOnFocus
+                        placeholder="00"
+                        placeholderTextColor={colors.mutedForeground}
+                      />
+                      <Text style={s.alarmInputLabel}>Minute</Text>
+                    </View>
+                    <View style={{ width: 70 }}>
+                      <View style={s.ampmRow}>
+                        {(["AM", "PM"] as const).map((v) => (
+                          <TouchableOpacity
+                            key={v}
+                            style={[
+                              s.ampmBtn,
+                              {
+                                backgroundColor: alarmAmPm === v ? colors.primary + "20" : "transparent",
+                                borderColor: alarmAmPm === v ? colors.primary : colors.border,
+                              },
+                            ]}
+                            onPress={() => setAlarmAmPm(v)}
+                          >
+                            <Text style={[s.ampmText, { color: alarmAmPm === v ? colors.primary : colors.mutedForeground }]}>
+                              {v}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      <Text style={[s.alarmInputLabel, { textAlign: "center" }]}>AM / PM</Text>
+                    </View>
+                  </View>
+
+                  <Text style={s.quickAlarmLabel}>Quick select</Text>
+                  <View style={s.quickAlarmRow}>
+                    {QUICK_TIMES.map((qt) => {
+                      const isActive = alarmHour === qt.h && alarmMinute === qt.m && alarmAmPm === qt.ap;
+                      return (
+                        <TouchableOpacity
+                          key={qt.label}
+                          style={[
+                            s.quickAlarmChip,
+                            {
+                              backgroundColor: isActive ? colors.primary + "18" : "transparent",
+                              borderColor: isActive ? colors.primary : colors.border,
+                            },
+                          ]}
+                          onPress={() => {
+                            setAlarmHour(qt.h);
+                            setAlarmMinute(qt.m);
+                            setAlarmAmPm(qt.ap);
+                          }}
+                        >
+                          <Text style={[s.quickAlarmText, { color: isActive ? colors.primary : colors.mutedForeground }]}>
+                            {qt.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
               )}
 
               <Text style={s.label}>Category</Text>
@@ -244,21 +371,14 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                         ]}
                         onPress={() => setSelectedCategory(cat.id)}
                       >
-                        <Feather
-                          name={cat.icon as any}
-                          size={13}
-                          color={isSelected ? cat.color : colors.mutedForeground}
-                        />
+                        <Feather name={cat.icon as any} size={13} color={isSelected ? cat.color : colors.mutedForeground} />
                         <Text style={[s.categoryChipText, { color: isSelected ? cat.color : colors.mutedForeground }]}>
                           {cat.name}
                         </Text>
                       </TouchableOpacity>
                     );
                   })}
-                  <TouchableOpacity
-                    style={s.addCatTrigger}
-                    onPress={() => setShowAddCategory(!showAddCategory)}
-                  >
+                  <TouchableOpacity style={s.addCatTrigger} onPress={() => setShowAddCategory(!showAddCategory)}>
                     <Feather name="plus" size={13} color={colors.mutedForeground} />
                     <Text style={s.addCatTriggerText}>Add</Text>
                   </TouchableOpacity>
@@ -278,20 +398,13 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                       placeholderTextColor={colors.mutedForeground}
                       value={newCategoryName}
                       onChangeText={setNewCategoryName}
-                      autoFocus
                     />
                     <Text style={s.colorPickerLabel}>Pick a color</Text>
                     <View style={s.colorPicker}>
                       {CATEGORY_COLORS.map((c) => (
                         <TouchableOpacity
                           key={c}
-                          style={[
-                            s.colorDot,
-                            {
-                              backgroundColor: c,
-                              borderColor: newCategoryColor === c ? colors.foreground : "transparent",
-                            },
-                          ]}
+                          style={[s.colorDot, { backgroundColor: c, borderColor: newCategoryColor === c ? colors.foreground : "transparent" }]}
                           onPress={() => setNewCategoryColor(c)}
                         />
                       ))}
@@ -312,10 +425,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                       key={opt.value}
                       style={[
                         s.priorityBtn,
-                        {
-                          backgroundColor: isSelected ? opt.color + "20" : "transparent",
-                          borderColor: isSelected ? opt.color : colors.border,
-                        },
+                        { backgroundColor: isSelected ? opt.color + "20" : "transparent", borderColor: isSelected ? opt.color : colors.border },
                       ]}
                       onPress={() => setPriority(opt.value)}
                     >
