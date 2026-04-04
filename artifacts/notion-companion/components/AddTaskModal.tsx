@@ -33,9 +33,9 @@ const CATEGORY_COLORS = [
   "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#94a3b8",
 ];
 
-const ITEM_H = 52;
-const VISIBLE = 5;
-const CENTER = Math.floor(VISIBLE / 2); // = 2
+const ITEM_H = 44;
+const VISIBLE = 3;
+const CENTER = Math.floor(VISIBLE / 2); // = 1
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 60 }, (_, i) => i);
@@ -238,22 +238,9 @@ export default function AddTaskModal({ visible, onClose }: Props) {
       borderRadius: 16, marginBottom: 20,
       overflow: "hidden",
     },
-    pickerPreviewRow: {
-      alignItems: "center", justifyContent: "center",
-      paddingTop: 18, paddingBottom: 8,
-    },
-    pickerPreview: {
-      fontSize: 42, fontWeight: "800", letterSpacing: 2,
-      color: colors.foreground, fontFamily: "Inter_700Bold",
-    },
-    pickerSubLabel: {
-      fontSize: 12, color: colors.mutedForeground,
-      fontFamily: "Inter_400Regular", marginBottom: 6,
-    },
-    pickerDivider: { height: 1, backgroundColor: colors.border, marginHorizontal: 16 },
     drumRow: {
       flexDirection: "row", alignItems: "center", justifyContent: "center",
-      gap: 0, paddingVertical: 8,
+      gap: 0, paddingVertical: 10,
     },
     drumWrap: { alignItems: "center" },
     drumLabel: {
@@ -358,14 +345,6 @@ export default function AddTaskModal({ visible, onClose }: Props) {
               {/* ── Alarm drum picker ── */}
               {alarmEnabled && (
                 <View style={s.alarmPickerPanel}>
-                  {/* Big time preview */}
-                  <View style={s.pickerPreviewRow}>
-                    <Text style={s.pickerPreview}>{hourStr}:{minStr}</Text>
-                    <Text style={s.pickerSubLabel}>24-hour format</Text>
-                  </View>
-                  <View style={s.pickerDivider} />
-
-                  {/* Drums */}
                   <View style={s.drumRow}>
                     <View style={s.drumWrap}>
                       <WheelDrum
