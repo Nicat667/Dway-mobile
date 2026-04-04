@@ -102,15 +102,15 @@ export function WheelDrum({
         style={{
           position: "absolute", top: CENTER * H,
           left: 8, right: 8, height: 1, backgroundColor: border, zIndex: 2,
+          pointerEvents: "none",
         }}
-        pointerEvents="none"
       />
       <View
         style={{
           position: "absolute", top: (CENTER + 1) * H,
           left: 8, right: 8, height: 1, backgroundColor: border, zIndex: 2,
+          pointerEvents: "none",
         }}
-        pointerEvents="none"
       />
 
       <View {...panResponder.panHandlers} style={{ flex: 1 }}>
