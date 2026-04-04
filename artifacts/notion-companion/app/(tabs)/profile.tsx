@@ -191,20 +191,20 @@ export default function ProfileScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={[styles.statValue, { color: colors.primary }]}>{completedTasks}</Text>
-            <Text style={styles.statLabel}>Tasks Done</Text>
+            <Text style={styles.statLabel}>{t("tasksDone")}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={[styles.statValue, { color: "#f59e0b" }]}>{streakDays}</Text>
-            <Text style={styles.statLabel}>Day Streak</Text>
+            <Text style={styles.statLabel}>{t("dayStreak")}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={[styles.statValue, { color: "#22c55e" }]}>{completionRate}%</Text>
-            <Text style={styles.statLabel}>Completion</Text>
+            <Text style={styles.statLabel}>{t("completion")}</Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Achievements</Text>
+          <Text style={styles.sectionTitle}>{t("achievements")}</Text>
           <View style={styles.achievementRow}>
             {/* First Task */}
             <View style={styles.achievementCard}>
@@ -237,13 +237,13 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Community Challenges</Text>
+          <Text style={styles.sectionTitle}>{t("communityChallenges")}</Text>
           <View style={styles.settingCard}>
             {joinedChallenges.size === 0 ? (
               <View style={{ paddingHorizontal: 16, paddingVertical: 18, alignItems: "center" }}>
                 <Feather name="users" size={24} color={colors.mutedForeground} style={{ marginBottom: 8 }} />
                 <Text style={{ fontSize: 14, color: colors.mutedForeground, fontFamily: "Inter_400Regular", textAlign: "center" }}>
-                  No challenges joined yet.{"\n"}Visit Community to join one!
+                  {t("noChallenges")}
                 </Text>
               </View>
             ) : (
@@ -276,13 +276,13 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
+          <Text style={styles.sectionTitle}>{t("notifications")}</Text>
           <View style={styles.settingCard}>
             <View style={styles.settingRow}>
               <View style={[styles.settingIcon, { backgroundColor: colors.primary + "20" }]}>
                 <Feather name="bell" size={18} color={colors.primary} />
               </View>
-              <Text style={styles.settingLabel}>Push Notifications</Text>
+              <Text style={styles.settingLabel}>{t("pushNotifications")}</Text>
               <Switch
                 value={profileSettings.notificationsEnabled}
                 onValueChange={(v) => {
@@ -297,7 +297,7 @@ export default function ProfileScreen() {
               <View style={[styles.settingIcon, { backgroundColor: "#f59e0b20" }]}>
                 <Feather name="volume-2" size={18} color="#f59e0b" />
               </View>
-              <Text style={styles.settingLabel}>Alarm Sound</Text>
+              <Text style={styles.settingLabel}>{t("alarmSound")}</Text>
               <Text style={styles.settingValue}>{ALARM_SOUNDS.find((s) => s.value === profileSettings.alarmSound)?.label}</Text>
               <Feather name="chevron-right" size={16} color={colors.mutedForeground} style={{ marginLeft: 6 }} />
             </TouchableOpacity>
@@ -305,13 +305,13 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Appearance</Text>
+          <Text style={styles.sectionTitle}>{t("appearance")}</Text>
           <View style={styles.settingCard}>
             <TouchableOpacity style={styles.settingRow} onPress={() => setShowThemePicker(true)}>
               <View style={[styles.settingIcon, { backgroundColor: "#06b6d420" }]}>
                 <Feather name={themeMode === "dark" ? "moon" : themeMode === "light" ? "sun" : "smartphone"} size={18} color="#06b6d4" />
               </View>
-              <Text style={styles.settingLabel}>Theme</Text>
+              <Text style={styles.settingLabel}>{t("theme")}</Text>
               <Text style={styles.settingValue}>{currentThemeLabel}</Text>
               <Feather name="chevron-right" size={16} color={colors.mutedForeground} style={{ marginLeft: 6 }} />
             </TouchableOpacity>
@@ -319,7 +319,7 @@ export default function ProfileScreen() {
               <View style={[styles.settingIcon, { backgroundColor: "#8b5cf620" }]}>
                 <Feather name="globe" size={18} color="#8b5cf6" />
               </View>
-              <Text style={styles.settingLabel}>Language</Text>
+              <Text style={styles.settingLabel}>{t("language")}</Text>
               <Text style={styles.settingValue}>{currentLangLabel}</Text>
               <Feather name="chevron-right" size={16} color={colors.mutedForeground} style={{ marginLeft: 6 }} />
             </TouchableOpacity>
@@ -327,7 +327,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Partners</Text>
+          <Text style={styles.sectionTitle}>{t("partners")}</Text>
           <Text style={{ fontSize: 13, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginBottom: 12 }}>
             Exclusive perks from our partners — just for using Notion Companion.
           </Text>
@@ -433,7 +433,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data</Text>
+          <Text style={styles.sectionTitle}>{t("data")}</Text>
           <View style={styles.settingCard}>
             <TouchableOpacity
               style={styles.settingRowLast}
@@ -447,14 +447,14 @@ export default function ProfileScreen() {
               <View style={[styles.settingIcon, { backgroundColor: "#ef444420" }]}>
                 <Feather name="trash-2" size={18} color="#ef4444" />
               </View>
-              <Text style={[styles.settingLabel, { color: "#ef4444" }]}>Clear All Data</Text>
+              <Text style={[styles.settingLabel, { color: "#ef4444" }]}>{t("clearAllData")}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
 
       {/* Alarm Sound Picker */}
-      <PickerModal visible={showSoundPicker} onClose={() => setShowSoundPicker(false)} title="Alarm Sound">
+      <PickerModal visible={showSoundPicker} onClose={() => setShowSoundPicker(false)} title={t("alarmSound")}>
         {ALARM_SOUNDS.map((sound, i) => (
           <TouchableOpacity
             key={sound.value}
@@ -480,7 +480,7 @@ export default function ProfileScreen() {
       </PickerModal>
 
       {/* Theme Picker */}
-      <PickerModal visible={showThemePicker} onClose={() => setShowThemePicker(false)} title="Choose Theme">
+      <PickerModal visible={showThemePicker} onClose={() => setShowThemePicker(false)} title={t("chooseTheme")}>
         <View style={styles.themeOptionRow}>
           {THEME_OPTIONS.map((opt) => (
             <TouchableOpacity
@@ -512,7 +512,7 @@ export default function ProfileScreen() {
       </PickerModal>
 
       {/* Language Picker */}
-      <PickerModal visible={showLanguagePicker} onClose={() => setShowLanguagePicker(false)} title="Choose Language">
+      <PickerModal visible={showLanguagePicker} onClose={() => setShowLanguagePicker(false)} title={t("chooseLanguage")}>
         <ScrollView style={{ maxHeight: 400 }}>
           {LANGUAGES.map((lang, i) => (
             <TouchableOpacity
@@ -527,6 +527,7 @@ export default function ProfileScreen() {
                 setShowLanguagePicker(false);
               }}
             >
+              <Text style={{ fontSize: 22, marginRight: 12 }}>{lang.flag}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.optionLabel}>{lang.native}</Text>
                 <Text style={styles.optionDesc}>{lang.label}</Text>

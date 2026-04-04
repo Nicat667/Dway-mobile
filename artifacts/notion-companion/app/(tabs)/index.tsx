@@ -320,9 +320,9 @@ export default function PlanScreen() {
         </View>
         <Text style={styles.statsText}>
           <Text style={styles.statsHighlight}>{completedCount}</Text>
-          {" of "}
+          {` ${t("of")} `}
           <Text style={styles.statsHighlight}>{totalCount}</Text>
-          {" tasks completed"}
+          {` ${t("tasksCompleted")}`}
         </Text>
       </View>
 
@@ -378,7 +378,7 @@ export default function PlanScreen() {
       )}
 
       <View style={styles.quoteCard}>
-        <Text style={styles.quoteLabel}>Daily Motivation</Text>
+        <Text style={styles.quoteLabel}>{t("dailyMotivation")}</Text>
         <Text style={styles.quoteText}>"{dailyQuote.quote}"</Text>
         <Text style={styles.quoteAuthor}>— {dailyQuote.author}</Text>
       </View>
@@ -389,7 +389,7 @@ export default function PlanScreen() {
         style={styles.categoriesRow}
         contentContainerStyle={{ paddingRight: 20 }}
       >
-        {[{ id: "all", name: "All", color: colors.primary, icon: "grid" }, ...categories].map(
+        {[{ id: "all", name: t("all"), color: colors.primary, icon: "grid" }, ...categories].map(
           (cat: Category | { id: string; name: string; color: string; icon: string }) => (
             <TouchableOpacity
               key={cat.id}
