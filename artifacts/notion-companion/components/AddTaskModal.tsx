@@ -6,7 +6,6 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -294,8 +293,8 @@ export default function AddTaskModal({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={s.overlay} onPress={onClose}>
-        <Pressable onPress={() => {}}>
+      <View style={s.overlay}>
+        <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
           <View style={s.container}>
             <View style={s.handle} />
             <View style={s.header}>
@@ -476,8 +475,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </Pressable>
-      </Pressable>
+      </View>
     </Modal>
   );
 }

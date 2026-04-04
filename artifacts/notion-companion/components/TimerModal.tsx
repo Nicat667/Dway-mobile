@@ -5,7 +5,6 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -148,14 +147,19 @@ export default function TimerModal({ visible, onClose }: Props) {
 
   const [isRunning, setIsRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
-  // totalSeconds and remaining only used while timer is running/paused
-  const [totalSeconds, setTotalSeconds] = useState(25 * 60);
-  const [remaining, setRemaining] = useState(25 * 60);
+  const [totalSeconds, setTotalSeconds] = useState(0);
+  const [remaining, setRemaining] = useState(0);
   const [started, setStarted] = useState(false);
+  const [activePreset, setActivePreset] = useState<number | null>(null);
 
   const [drumHours, setDrumHours] = useState(0);
-  const [drumMinutes, setDrumMinutes] = useState(25);
+  const [drumMinutes, setDrumMinutes] = useState(0);
   const [drumSeconds, setDrumSeconds] = useState(0);
+
+  // Drum change handlers — also clear active preset
+  const onHoursChange = (v: number) => { setDrumHours(v); setActivePreset(null); setStarted(false); setIsRunning(false); };
+  const onMinutesChange = (v: number) => { setDrumMinutes(v); setActivePreset(null); setStarted(false); setIsRunning(false); };
+  const onSecondsChange = (v: number) => { setDrumSeconds(v); setActivePreset(null); setStarted(false); setIsRunning(false); };
 
   // Derived: what the drums currently show
   const drumTotal = drumHours * 3600 + drumMinutes * 60 + drumSeconds;
@@ -191,13 +195,26 @@ export default function TimerModal({ visible, onClose }: Props) {
 
   const applyPreset = (seconds: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setTotalSeconds(seconds);
-    setRemaining(seconds);
-    setIsRunning(false);
-    setStarted(false);
-    setDrumHours(Math.floor(seconds / 3600));
-    setDrumMinutes(Math.floor((seconds % 3600) / 60));
-    setDrumSeconds(seconds % 60);
+    if (activePreset === seconds) {
+      // Deselect — reset everything to zero
+      setActivePreset(null);
+      setTotalSeconds(0);
+      setRemaining(0);
+      setIsRunning(false);
+      setStarted(false);
+      setDrumHours(0);
+      setDrumMinutes(0);
+      setDrumSeconds(0);
+    } else {
+      setActivePreset(seconds);
+      setTotalSeconds(seconds);
+      setRemaining(seconds);
+      setIsRunning(false);
+      setStarted(false);
+      setDrumHours(Math.floor(seconds / 3600));
+      setDrumMinutes(Math.floor((seconds % 3600) / 60));
+      setDrumSeconds(seconds % 60);
+    }
   };
 
   const toggleTimer = () => {
@@ -299,8 +316,8 @@ export default function TimerModal({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable onPress={() => {}}>
+      <View style={styles.overlay}>
+        <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
           <View style={styles.container}>
             <View style={styles.handle} />
             <View style={styles.header}>
@@ -312,7 +329,7 @@ export default function TimerModal({ visible, onClose }: Props) {
             <Text style={styles.presetsLabel}>Quick Presets</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsRow}>
               {QUICK_PRESETS.map((p) => {
-                const isActive = totalSeconds === p.seconds;
+                const isActive = activePreset === p.seconds;
                 return (
                   <TouchableOpacity
                     key={p.label}
@@ -341,7 +358,7 @@ export default function TimerModal({ visible, onClose }: Props) {
                   <WheelDrum
                     data={HOURS_DATA}
                     value={drumHours}
-                    onChange={setDrumHours}
+                    onChange={onHoursChange}
                     formatItem={(v) => v.toString().padStart(2, "0")}
                     primaryColor={colors.primary}
                     foreground={colors.foreground}
@@ -358,7 +375,7 @@ export default function TimerModal({ visible, onClose }: Props) {
                   <WheelDrum
                     data={MINUTES_DATA}
                     value={drumMinutes}
-                    onChange={setDrumMinutes}
+                    onChange={onMinutesChange}
                     formatItem={(v) => v.toString().padStart(2, "0")}
                     primaryColor={colors.primary}
                     foreground={colors.foreground}
@@ -375,7 +392,7 @@ export default function TimerModal({ visible, onClose }: Props) {
                   <WheelDrum
                     data={SECONDS_DATA}
                     value={drumSeconds}
-                    onChange={setDrumSeconds}
+                    onChange={onSecondsChange}
                     formatItem={(v) => v.toString().padStart(2, "0")}
                     primaryColor={colors.primary}
                     foreground={colors.foreground}
@@ -426,8 +443,7 @@ export default function TimerModal({ visible, onClose }: Props) {
               </TouchableOpacity>
             </View>
           </View>
-        </Pressable>
-      </Pressable>
+      </View>
     </Modal>
   );
 }
