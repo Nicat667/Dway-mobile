@@ -127,7 +127,9 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
+  // NativeTabLayout uses SF Symbols + expo-router unstable-native-tabs,
+  // both of which are iOS-only. Always use ClassicTabLayout on Android/web.
+  if (Platform.OS === "ios" && isLiquidGlassAvailable()) {
     return <NativeTabLayout />;
   }
   return <ClassicTabLayout />;

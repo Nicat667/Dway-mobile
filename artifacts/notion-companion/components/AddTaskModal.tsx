@@ -201,7 +201,11 @@ export default function AddTaskModal({ visible, onClose }: Props) {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={s.content} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={s.content}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
 
               {/* ── Title ── */}
               <Text style={s.label}>Task Title</Text>
