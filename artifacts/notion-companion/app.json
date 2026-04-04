@@ -18,7 +18,11 @@
       "bundleIdentifier": "com.dway.app"
     },
     "android": {
-      "package": "com.dway.app"
+      "package": "com.dway.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#0f172a"
+      }
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -31,7 +35,15 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#0f172a",
+          "defaultChannel": "alarms"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

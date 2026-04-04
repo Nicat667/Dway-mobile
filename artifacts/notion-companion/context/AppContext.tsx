@@ -4,8 +4,11 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
+
+import { cancelAlarm, scheduleTaskAlarm } from "@/utils/alarmService";
 
 export type Category = {
   id: string;
@@ -24,6 +27,7 @@ export type Task = {
   dueDate?: string;
   alarmTime?: string;
   alarmEnabled: boolean;
+  notificationId?: string; // expo-notifications ID, used to cancel the alarm
   createdAt: string;
   completedAt?: string;
   notes?: string;
@@ -139,6 +143,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   });
   const [joinedChallenges, setJoinedChallenges] = useState<Set<string>>(new Set());
 
+  // Ref so alarm scheduling inside callbacks always sees the latest settings
+  const profileRef = useRef(profileSettings);
+  useEffect(() => { profileRef.current = profileSettings; }, [profileSettings]);
+
   const toggleChallenge = useCallback((id: string) => {
     setJoinedChallenges((prev) => {
       const next = new Set(prev);
@@ -193,6 +201,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         saveTasks(updated);
         return updated;
       });
+
+      // Schedule notification if alarm is enabled and notifications are on
+      if (task.alarmEnabled && task.alarmTime && profileRef.current.notificationsEnabled) {
+        scheduleTaskAlarm(
+          newTask.id,
+          newTask.title,
+          task.alarmTime,
+          profileRef.current.alarmSound
+        ).then((notifId) => {
+          if (!notifId) return;
+          // Store the notification ID on the task so we can cancel it later
+          setTasks((prev) => {
+            const updated = prev.map((t) =>
+              t.id === newTask.id ? { ...t, notificationId: notifId } : t
+            );
+            saveTasks(updated);
+            return updated;
+          });
+        });
+      }
     },
     [saveTasks]
   );
@@ -211,6 +239,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteTask = useCallback(
     (id: string) => {
       setTasks((prev) => {
+        const task = prev.find((t) => t.id === id);
+        if (task?.notificationId) cancelAlarm(task.notificationId);
         const updated = prev.filter((t) => t.id !== id);
         saveTasks(updated);
         return updated;
@@ -222,6 +252,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const toggleTask = useCallback(
     (id: string) => {
       setTasks((prev) => {
+        const task = prev.find((t) => t.id === id);
+        // Cancel pending alarm when completing a task
+        if (task && !task.completed && task.notificationId) {
+          cancelAlarm(task.notificationId);
+        }
         const updated = prev.map((t) =>
           t.id === id
             ? {

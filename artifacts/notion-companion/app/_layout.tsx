@@ -7,12 +7,15 @@ import {
 } from "@expo-google-fonts/inter";
 import { Feather } from "@expo/vector-icons";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
+import { requestPermissions } from "@/utils/alarmService";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/context/AppContext";
@@ -42,8 +45,19 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
+      // Ask for notification permission as soon as the app is ready
+      requestPermissions();
     }
   }, [fontsLoaded, fontError]);
+
+  useEffect(() => {
+    // Handle notification tap when app is in background/closed
+    const sub = Notifications.addNotificationResponseReceivedListener(() => {
+      // Notification was tapped — app is already open, nothing extra needed
+      // (extend here if you want to navigate to a specific task)
+    });
+    return () => sub.remove();
+  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 

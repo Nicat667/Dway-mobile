@@ -13,7 +13,9 @@ import {
 import Svg, { Circle } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { fireTimerDone } from "@/utils/alarmService";
 import { WheelDrum } from "@/components/WheelDrum";
 
 type Props = { visible: boolean; onClose: () => void };
@@ -43,6 +45,7 @@ const SECONDS_DATA = Array.from({ length: 60 }, (_, i) => i);
 export default function TimerModal({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { profileSettings } = useApp();
 
   const [isRunning, setIsRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
@@ -79,6 +82,7 @@ export default function TimerModal({ visible, onClose }: Props) {
             setStarted(false);
             setSessions((s) => s + 1);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            fireTimerDone(profileSettings.alarmSound);
             return 0;
           }
           return prev - 1;
