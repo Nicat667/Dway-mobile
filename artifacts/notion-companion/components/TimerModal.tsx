@@ -29,7 +29,7 @@ const QUICK_PRESETS = [
   { label: "2 hr", seconds: 120 * 60 },
 ];
 
-const RING_RADIUS = 78;
+const RING_RADIUS = 96;
 const STROKE_W = 10;
 const SVG_SIZE = (RING_RADIUS + STROKE_W) * 2 + 4;
 const CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;

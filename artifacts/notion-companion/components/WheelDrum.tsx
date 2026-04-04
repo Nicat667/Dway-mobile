@@ -54,12 +54,8 @@ export function WheelDrum({
 
   const panResponder = useRef(
     PanResponder.create({
-      // Capture-phase claims: run top-down before ScrollView's native gesture
-      // recognizer can intercept the touch. Critical for iOS WheelDrum inside ScrollView.
       onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderGrant: () => {
         offsetY.stopAnimation((val) => {
           baseOffset.current = val;
