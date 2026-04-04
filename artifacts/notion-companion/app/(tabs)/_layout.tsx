@@ -12,23 +12,24 @@ import { useTheme } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
 function NativeTabLayout() {
+  const { t } = useTheme();
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
         <Icon sf={{ default: "checklist", selected: "checklist" }} />
-        <Label>Plan</Label>
+        <Label>{t("plan")}</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="progress">
         <Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} />
-        <Label>Progress</Label>
+        <Label>{t("progress")}</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="community">
         <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
-        <Label>Community</Label>
+        <Label>{t("community")}</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <Icon sf={{ default: "person", selected: "person.fill" }} />
-        <Label>Profile</Label>
+        <Label>{t("profile")}</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -36,7 +37,7 @@ function NativeTabLayout() {
 
 function ClassicTabLayout() {
   const colors = useColors();
-  const { isDark } = useTheme();
+  const { isDark, t } = useTheme();
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
   const insets = useSafeAreaInsets();
@@ -76,7 +77,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Plan",
+          title: t("plan"),
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="checklist" tintColor={color} size={24} />
@@ -88,7 +89,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="progress"
         options={{
-          title: "Progress",
+          title: t("progress"),
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="chart.bar.fill" tintColor={color} size={24} />
@@ -100,7 +101,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: "Community",
+          title: t("community"),
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="person.2.fill" tintColor={color} size={24} />
@@ -112,7 +113,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: t("profile"),
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="person.fill" tintColor={color} size={24} />

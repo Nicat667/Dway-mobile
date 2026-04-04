@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
+import { useTheme } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
 type Comment = { id: string; user: string; text: string; time: string; avatarColor: string };
@@ -109,6 +110,7 @@ export default function CommunityScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { joinedChallenges, toggleChallenge } = useApp();
+  const { t } = useTheme();
   const [activeTab, setActiveTab] = useState<"feed" | "challenges">("feed");
   const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
@@ -142,9 +144,9 @@ export default function CommunityScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const newComment: Comment = {
       id: Date.now().toString(),
-      user: "You",
+      user: t("you"),
       text: commentText.trim(),
-      time: "Just now",
+      time: t("justNow"),
       avatarColor: "#6366f1",
     };
     setPosts((prev) =>
@@ -161,10 +163,10 @@ export default function CommunityScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const newPost: Post = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-      user: "You",
+      user: t("you"),
       avatar: "Y",
       avatarColor: "#6366f1",
-      time: "Just now",
+      time: t("justNow"),
       message: newPostText.trim(),
       likes: 0,
       comments: [],
@@ -349,8 +351,8 @@ export default function CommunityScreen() {
       >
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.title}>Community</Text>
-            <Text style={styles.subtitle}>Share your wins, find your tribe</Text>
+            <Text style={styles.title}>{t("community")}</Text>
+            <Text style={styles.subtitle}>{t("communitySubtitle")}</Text>
           </View>
           {activeTab === "feed" && (
             <TouchableOpacity
@@ -361,7 +363,7 @@ export default function CommunityScreen() {
               }}
             >
               <Feather name="edit-2" size={14} color="#fff" />
-              <Text style={styles.newPostBtnText}>New Post</Text>
+              <Text style={styles.newPostBtnText}>{t("newPost")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -374,7 +376,7 @@ export default function CommunityScreen() {
               onPress={() => setActiveTab(tab)}
             >
               <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary : colors.mutedForeground }]}>
-                {tab === "feed" ? "Activity Feed" : "Challenges"}
+                {tab === "feed" ? t("activityFeed") : t("challenges")}
               </Text>
             </TouchableOpacity>
           ))}
@@ -428,7 +430,7 @@ export default function CommunityScreen() {
                 </View>
                 <View style={styles.challengeFooter}>
                   <Feather name="users" size={13} color={colors.mutedForeground} />
-                  <Text style={styles.participantsText}>{challenge.participants.toLocaleString()} participants</Text>
+                  <Text style={styles.participantsText}>{challenge.participants.toLocaleString()} {t("participants")}</Text>
                   <TouchableOpacity
                     style={[
                       styles.joinBtn,
@@ -440,7 +442,7 @@ export default function CommunityScreen() {
                     onPress={() => handleToggleChallenge(challenge.id)}
                   >
                     <Text style={[styles.joinBtnText, { color: joinedChallenges.has(challenge.id) ? "#fff" : challenge.color }]}>
-                      {joinedChallenges.has(challenge.id) ? "Joined" : "Join"}
+                      {joinedChallenges.has(challenge.id) ? t("joined") : t("join")}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -456,7 +458,7 @@ export default function CommunityScreen() {
               <View style={styles.newPostContainer}>
                 <View style={styles.modalHandle} />
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>New Post</Text>
+                  <Text style={styles.modalTitle}>{t("newPost")}</Text>
                   <TouchableOpacity onPress={() => setShowNewPost(false)}>
                     <Feather name="x" size={22} color={colors.mutedForeground} />
                   </TouchableOpacity>
@@ -464,7 +466,7 @@ export default function CommunityScreen() {
 
                 <TextInput
                   style={styles.newPostTextInput}
-                  placeholder="Share your win, progress, or tip..."
+                  placeholder={t("newPostPlaceholder")}
                   placeholderTextColor={colors.mutedForeground}
                   value={newPostText}
                   onChangeText={setNewPostText}
@@ -472,7 +474,7 @@ export default function CommunityScreen() {
                   autoFocus
                 />
 
-                <Text style={styles.catLabel}>Category</Text>
+                <Text style={styles.catLabel}>{t("category")}</Text>
                 <View style={styles.catRow}>
                   {POST_CATEGORIES.map((cat) => {
                     const active = newPostCategory.label === cat.label;
@@ -501,7 +503,7 @@ export default function CommunityScreen() {
                   onPress={submitPost}
                   disabled={!newPostText.trim()}
                 >
-                  <Text style={styles.publishText}>Publish Post</Text>
+                  <Text style={styles.publishText}>{t("publishPost")}</Text>
                 </TouchableOpacity>
               </View>
             </KeyboardAvoidingView>
@@ -528,7 +530,7 @@ export default function CommunityScreen() {
             >
               <Feather name="arrow-left" size={18} color={colors.foreground} />
             </TouchableOpacity>
-            <Text style={styles.commentScreenTitle}>Comments</Text>
+            <Text style={styles.commentScreenTitle}>{t("comments")}</Text>
             <Text style={styles.commentScreenCount}>
               {activePost?.comments.length ?? 0}
             </Text>
@@ -559,7 +561,7 @@ export default function CommunityScreen() {
             data={activePost?.comments ?? []}
             keyExtractor={(c) => c.id}
             ListEmptyComponent={
-              <Text style={styles.noComments}>No comments yet. Be the first!</Text>
+              <Text style={styles.noComments}>{t("noCommentsYet")}</Text>
             }
             renderItem={({ item: c }) => (
               <View style={styles.commentItem}>
@@ -579,7 +581,7 @@ export default function CommunityScreen() {
           <View style={styles.commentInputRow}>
             <TextInput
               style={styles.commentInput}
-              placeholder="Write a comment..."
+              placeholder={t("writeComment")}
               placeholderTextColor={colors.mutedForeground}
               value={commentText}
               onChangeText={setCommentText}

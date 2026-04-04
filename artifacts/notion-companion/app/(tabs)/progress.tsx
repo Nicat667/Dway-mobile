@@ -12,15 +12,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ProgressCircle from "@/components/ProgressCircle";
 import { ProgressPeriod, useApp } from "@/context/AppContext";
+import { useTheme } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
 type Period = ProgressPeriod;
-
-const PERIODS: { key: Period; label: string; icon: string }[] = [
-  { key: "weekly", label: "Weekly", icon: "calendar" },
-  { key: "monthly", label: "Monthly", icon: "layers" },
-  { key: "yearly", label: "Yearly", icon: "trending-up" },
-];
 
 function generateInsights(
   period: Period,
@@ -90,7 +85,14 @@ export default function ProgressScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { getTaskStats, categories } = useApp();
+  const { t } = useTheme();
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("weekly");
+
+  const PERIODS: { key: Period; label: string; icon: string }[] = [
+    { key: "weekly", label: t("weekly"), icon: "calendar" },
+    { key: "monthly", label: t("monthly"), icon: "layers" },
+    { key: "yearly", label: t("yearly"), icon: "trending-up" },
+  ];
 
   const stats = getTaskStats(selectedPeriod);
   const insights = generateInsights(selectedPeriod, stats.percentage, stats.byCategory, categories);
@@ -305,8 +307,8 @@ export default function ProgressScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Progress</Text>
-        <Text style={styles.subtitle}>Track your productivity over time</Text>
+        <Text style={styles.title}>{t("progress")}</Text>
+        <Text style={styles.subtitle}>{t("progressSubtitle")}</Text>
       </View>
 
       <View style={styles.periodSelector}>
@@ -354,22 +356,22 @@ export default function ProgressScreen() {
           color={colors.primary}
         />
         <Text style={styles.mainCircleLabel}>
-          Overall Completion
+          {t("overallCompletion")}
         </Text>
         <View style={styles.mainStats}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{stats.completed}</Text>
-            <Text style={styles.statLabel}>Done</Text>
+            <Text style={styles.statLabel}>{t("done")}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{stats.total - stats.completed}</Text>
-            <Text style={styles.statLabel}>Remaining</Text>
+            <Text style={styles.statLabel}>{t("remaining")}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{stats.total}</Text>
-            <Text style={styles.statLabel}>Total</Text>
+            <Text style={styles.statLabel}>{t("total")}</Text>
           </View>
         </View>
 
@@ -396,7 +398,7 @@ export default function ProgressScreen() {
 
       {activeCategoryStats.length > 0 ? (
         <View style={styles.categoriesSection}>
-          <Text style={styles.sectionTitle}>By Category</Text>
+          <Text style={styles.sectionTitle}>{t("byCategory")}</Text>
           {activeCategoryStats.map((catStat) => {
             const cat = categories.find((c) => c.id === catStat.categoryId);
             if (!cat) return null;
@@ -428,14 +430,12 @@ export default function ProgressScreen() {
         </View>
       ) : (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>
-            No task data yet for this period.{"\n"}Add tasks in the Plan tab to see your progress!
-          </Text>
+          <Text style={styles.emptyText}>{t("noTaskData")}</Text>
         </View>
       )}
 
       <View style={styles.insightsSection}>
-        <Text style={styles.sectionTitle}>AI Insights</Text>
+        <Text style={styles.sectionTitle}>{t("aiInsights")}</Text>
         {insights.map((insight, i) => {
           const ic = insightColors[i % insightColors.length];
           return (
