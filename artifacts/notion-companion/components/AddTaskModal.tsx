@@ -4,9 +4,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Modal,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -18,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Category, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { WheelDrum } from "@/components/WheelDrum";
 
 type Props = { visible: boolean; onClose: () => void };
 
@@ -32,110 +30,8 @@ const CATEGORY_COLORS = [
   "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#94a3b8",
 ];
 
-const ITEM_H = 44;
-const VISIBLE = 3;
-const CENTER = Math.floor(VISIBLE / 2); // = 1
-
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 60 }, (_, i) => i);
-
-/* ─── Wheel Drum Picker ─── */
-function WheelDrum({
-  data,
-  value,
-  onChange,
-  formatItem,
-  primaryColor,
-  foreground,
-  muted,
-  border,
-  card,
-}: {
-  data: number[];
-  value: number;
-  onChange: (v: number) => void;
-  formatItem?: (v: number) => string;
-  primaryColor: string;
-  foreground: string;
-  muted: string;
-  border: string;
-  card: string;
-}) {
-  const scrollRef = useRef<ScrollView>(null);
-  const [liveIdx, setLiveIdx] = useState(data.indexOf(value));
-
-  useEffect(() => {
-    const idx = data.indexOf(value);
-    setLiveIdx(idx);
-    setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: idx * ITEM_H, animated: false });
-    }, 60);
-  }, []);
-
-  const commitIdx = (offsetY: number) => {
-    const idx = Math.round(offsetY / ITEM_H);
-    const clamped = Math.max(0, Math.min(data.length - 1, idx));
-    setLiveIdx(clamped);
-    onChange(data[clamped]);
-  };
-
-  const trackIdx = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
-    setLiveIdx(Math.max(0, Math.min(data.length - 1, idx)));
-  };
-
-  return (
-    <View style={{ width: 80, height: ITEM_H * VISIBLE, overflow: "hidden" }}>
-      {/* iPhone-style selection band lines */}
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: ITEM_H * CENTER,
-          left: 4, right: 4,
-          height: ITEM_H,
-          borderTopWidth: 1.5,
-          borderBottomWidth: 1.5,
-          borderColor: border,
-          borderRadius: 4,
-          zIndex: 10,
-        }}
-      />
-      <ScrollView
-        ref={scrollRef}
-        showsVerticalScrollIndicator={false}
-        snapToInterval={ITEM_H}
-        decelerationRate="fast"
-        contentContainerStyle={{ paddingVertical: ITEM_H * CENTER }}
-        onScroll={trackIdx}
-        onMomentumScrollEnd={(e) => commitIdx(e.nativeEvent.contentOffset.y)}
-        onScrollEndDrag={(e) => commitIdx(e.nativeEvent.contentOffset.y)}
-        scrollEventThrottle={8}
-      >
-        {data.map((item, idx) => {
-          const dist = Math.abs(idx - liveIdx);
-          const isSelected = dist === 0;
-          const opacity = isSelected ? 1 : dist === 1 ? 0.5 : 0.2;
-          return (
-            <View key={item} style={{ height: ITEM_H, alignItems: "center", justifyContent: "center" }}>
-              <Text
-                style={{
-                  fontSize: isSelected ? 28 : 20,
-                  fontWeight: isSelected ? "700" : "400",
-                  color: isSelected ? foreground : muted,
-                  fontFamily: isSelected ? "Inter_700Bold" : "Inter_400Regular",
-                  opacity,
-                }}
-              >
-                {formatItem ? formatItem(item) : String(item)}
-              </Text>
-            </View>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-}
 
 /* ─── Main Modal ─── */
 export default function AddTaskModal({ visible, onClose }: Props) {
@@ -353,9 +249,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                         formatItem={(v) => v.toString().padStart(2, "0")}
                         primaryColor={colors.primary}
                         foreground={colors.foreground}
-                        muted={colors.mutedForeground}
                         border={colors.border}
-                        card={colors.card}
                       />
                       <Text style={s.drumLabel}>Hour</Text>
                     </View>
@@ -370,9 +264,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                         formatItem={(v) => v.toString().padStart(2, "0")}
                         primaryColor={colors.primary}
                         foreground={colors.foreground}
-                        muted={colors.mutedForeground}
                         border={colors.border}
-                        card={colors.card}
                       />
                       <Text style={s.drumLabel}>Minute</Text>
                     </View>

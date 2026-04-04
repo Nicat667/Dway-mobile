@@ -3,8 +3,6 @@ import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Modal,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +13,7 @@ import Svg, { Circle } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+import { WheelDrum } from "@/components/WheelDrum";
 
 type Props = { visible: boolean; onClose: () => void };
 
@@ -36,110 +35,9 @@ const CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 const CX = SVG_SIZE / 2;
 const CY = SVG_SIZE / 2;
 
-// ── WheelDrum ──────────────────────────────────────────────────────────────
-const ITEM_H = 44;
-const VISIBLE = 3;
-
-type DrumProps = {
-  data: number[];
-  value: number;
-  onChange: (v: number) => void;
-  formatItem: (v: number) => string;
-  primaryColor: string;
-  foreground: string;
-  muted: string;
-  border: string;
-  card: string;
-};
-
-function WheelDrum({ data, value, onChange, formatItem, primaryColor, foreground, muted, border, card }: DrumProps) {
-  const scrollRef = useRef<ScrollView>(null);
-  const [liveIdx, setLiveIdx] = useState(data.indexOf(value));
-  const isMounting = useRef(true);
-
-  useEffect(() => {
-    const idx = data.indexOf(value);
-    if (idx >= 0 && isMounting.current) {
-      setTimeout(() => scrollRef.current?.scrollTo({ y: idx * ITEM_H, animated: false }), 50);
-      isMounting.current = false;
-    }
-  }, []);
-
-  useEffect(() => {
-    const idx = data.indexOf(value);
-    if (idx >= 0) {
-      scrollRef.current?.scrollTo({ y: idx * ITEM_H, animated: true });
-      setLiveIdx(idx);
-    }
-  }, [value]);
-
-  const containerH = ITEM_H * VISIBLE;
-  const centerY = ITEM_H * (VISIBLE - 1) / 2;
-
-  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const rawIdx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
-    const clamped = Math.max(0, Math.min(data.length - 1, rawIdx));
-    setLiveIdx(clamped);
-  };
-
-  const handleScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const rawIdx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
-    const clamped = Math.max(0, Math.min(data.length - 1, rawIdx));
-    scrollRef.current?.scrollTo({ y: clamped * ITEM_H, animated: true });
-    if (data[clamped] !== value) {
-      Haptics.selectionAsync();
-      onChange(data[clamped]);
-    }
-  };
-
-  return (
-    <View style={{ width: 72, height: containerH, overflow: "hidden" }}>
-      {/* top separator */}
-      <View style={{ position: "absolute", top: centerY, left: 8, right: 8, height: 1, backgroundColor: border, zIndex: 1 }} />
-      {/* bottom separator */}
-      <View style={{ position: "absolute", top: centerY + ITEM_H, left: 8, right: 8, height: 1, backgroundColor: border, zIndex: 1 }} />
-
-      <ScrollView
-        ref={scrollRef}
-        showsVerticalScrollIndicator={false}
-        snapToInterval={ITEM_H}
-        decelerationRate="fast"
-        contentContainerStyle={{ paddingVertical: centerY }}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        onMomentumScrollEnd={handleScrollEnd}
-        onScrollEndDrag={handleScrollEnd}
-      >
-        {data.map((item, idx) => {
-          const dist = Math.abs(idx - liveIdx);
-          const isSelected = dist === 0;
-          const opacity = dist === 0 ? 1 : dist === 1 ? 0.4 : 0.15;
-          return (
-            <View key={item} style={{ height: ITEM_H, alignItems: "center", justifyContent: "center" }}>
-              <Text
-                style={{
-                  fontSize: isSelected ? 26 : 20,
-                  fontWeight: isSelected ? "700" : "400",
-                  color: isSelected ? primaryColor : foreground,
-                  opacity,
-                  fontFamily: isSelected ? "Inter_700Bold" : "Inter_400Regular",
-                }}
-              >
-                {formatItem(item)}
-              </Text>
-            </View>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-}
-
 const HOURS_DATA = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES_DATA = Array.from({ length: 60 }, (_, i) => i);
 const SECONDS_DATA = Array.from({ length: 60 }, (_, i) => i);
-
-// ──────────────────────────────────────────────────────────────────────────
 
 export default function TimerModal({ visible, onClose }: Props) {
   const colors = useColors();
@@ -362,9 +260,7 @@ export default function TimerModal({ visible, onClose }: Props) {
                     formatItem={(v) => v.toString().padStart(2, "0")}
                     primaryColor={colors.primary}
                     foreground={colors.foreground}
-                    muted={colors.mutedForeground}
                     border={colors.border}
-                    card={colors.card}
                   />
                   <Text style={styles.drumLabel}>Hours</Text>
                 </View>
@@ -379,9 +275,7 @@ export default function TimerModal({ visible, onClose }: Props) {
                     formatItem={(v) => v.toString().padStart(2, "0")}
                     primaryColor={colors.primary}
                     foreground={colors.foreground}
-                    muted={colors.mutedForeground}
                     border={colors.border}
-                    card={colors.card}
                   />
                   <Text style={styles.drumLabel}>Minutes</Text>
                 </View>
@@ -396,9 +290,7 @@ export default function TimerModal({ visible, onClose }: Props) {
                     formatItem={(v) => v.toString().padStart(2, "0")}
                     primaryColor={colors.primary}
                     foreground={colors.foreground}
-                    muted={colors.mutedForeground}
                     border={colors.border}
-                    card={colors.card}
                   />
                   <Text style={styles.drumLabel}>Seconds</Text>
                 </View>
