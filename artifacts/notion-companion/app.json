@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Notion Companion",
-    "slug": "notion-companion",
+    "name": "Dway",
+    "slug": "dway",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "notion-companion",
+    "scheme": "dway",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -14,9 +14,12 @@
       "backgroundColor": "#0f172a"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.dway.app"
     },
-    "android": {},
+    "android": {
+      "package": "com.dway.app"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
