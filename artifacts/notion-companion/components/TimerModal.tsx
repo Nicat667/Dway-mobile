@@ -3,11 +3,12 @@ import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -36,6 +37,111 @@ const CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 const CX = SVG_SIZE / 2;
 const CY = SVG_SIZE / 2;
 
+// ── WheelDrum ──────────────────────────────────────────────────────────────
+const ITEM_H = 44;
+const VISIBLE = 3;
+
+type DrumProps = {
+  data: number[];
+  value: number;
+  onChange: (v: number) => void;
+  formatItem: (v: number) => string;
+  primaryColor: string;
+  foreground: string;
+  muted: string;
+  border: string;
+  card: string;
+};
+
+function WheelDrum({ data, value, onChange, formatItem, primaryColor, foreground, muted, border, card }: DrumProps) {
+  const scrollRef = useRef<ScrollView>(null);
+  const [liveIdx, setLiveIdx] = useState(data.indexOf(value));
+  const isMounting = useRef(true);
+
+  useEffect(() => {
+    const idx = data.indexOf(value);
+    if (idx >= 0 && isMounting.current) {
+      setTimeout(() => scrollRef.current?.scrollTo({ y: idx * ITEM_H, animated: false }), 50);
+      isMounting.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    const idx = data.indexOf(value);
+    if (idx >= 0) {
+      scrollRef.current?.scrollTo({ y: idx * ITEM_H, animated: true });
+      setLiveIdx(idx);
+    }
+  }, [value]);
+
+  const containerH = ITEM_H * VISIBLE;
+  const centerY = ITEM_H * (VISIBLE - 1) / 2;
+
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const rawIdx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
+    const clamped = Math.max(0, Math.min(data.length - 1, rawIdx));
+    setLiveIdx(clamped);
+  };
+
+  const handleScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const rawIdx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
+    const clamped = Math.max(0, Math.min(data.length - 1, rawIdx));
+    scrollRef.current?.scrollTo({ y: clamped * ITEM_H, animated: true });
+    if (data[clamped] !== value) {
+      Haptics.selectionAsync();
+      onChange(data[clamped]);
+    }
+  };
+
+  return (
+    <View style={{ width: 72, height: containerH, overflow: "hidden" }}>
+      {/* top separator */}
+      <View style={{ position: "absolute", top: centerY, left: 8, right: 8, height: 1, backgroundColor: border, zIndex: 1 }} />
+      {/* bottom separator */}
+      <View style={{ position: "absolute", top: centerY + ITEM_H, left: 8, right: 8, height: 1, backgroundColor: border, zIndex: 1 }} />
+
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        snapToInterval={ITEM_H}
+        decelerationRate="fast"
+        contentContainerStyle={{ paddingVertical: centerY }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={handleScrollEnd}
+        onScrollEndDrag={handleScrollEnd}
+      >
+        {data.map((item, idx) => {
+          const dist = Math.abs(idx - liveIdx);
+          const isSelected = dist === 0;
+          const opacity = dist === 0 ? 1 : dist === 1 ? 0.4 : 0.15;
+          return (
+            <View key={item} style={{ height: ITEM_H, alignItems: "center", justifyContent: "center" }}>
+              <Text
+                style={{
+                  fontSize: isSelected ? 26 : 20,
+                  fontWeight: isSelected ? "700" : "400",
+                  color: isSelected ? primaryColor : foreground,
+                  opacity,
+                  fontFamily: isSelected ? "Inter_700Bold" : "Inter_400Regular",
+                }}
+              >
+                {formatItem(item)}
+              </Text>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+const HOURS_DATA = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES_DATA = Array.from({ length: 60 }, (_, i) => i);
+const SECONDS_DATA = Array.from({ length: 60 }, (_, i) => i);
+
+// ──────────────────────────────────────────────────────────────────────────
+
 export default function TimerModal({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -46,11 +152,23 @@ export default function TimerModal({ visible, onClose }: Props) {
   const [remaining, setRemaining] = useState(25 * 60);
   const [started, setStarted] = useState(false);
 
-  const [customHours, setCustomHours] = useState("0");
-  const [customMinutes, setCustomMinutes] = useState("25");
-  const [customSeconds, setCustomSeconds] = useState("0");
+  const [drumHours, setDrumHours] = useState(0);
+  const [drumMinutes, setDrumMinutes] = useState(25);
+  const [drumSeconds, setDrumSeconds] = useState(0);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Apply wheel values to timer whenever drums change (while not running)
+  useEffect(() => {
+    if (!isRunning) {
+      const total = drumHours * 3600 + drumMinutes * 60 + drumSeconds;
+      if (total > 0) {
+        setTotalSeconds(total);
+        setRemaining(total);
+        setStarted(false);
+      }
+    }
+  }, [drumHours, drumMinutes, drumSeconds]);
 
   useEffect(() => {
     if (isRunning) {
@@ -75,31 +193,15 @@ export default function TimerModal({ visible, onClose }: Props) {
     };
   }, [isRunning]);
 
-  const applyCustomTime = () => {
-    const h = Math.max(0, Math.min(23, parseInt(customHours) || 0));
-    const m = Math.max(0, Math.min(59, parseInt(customMinutes) || 0));
-    const s = Math.max(0, Math.min(59, parseInt(customSeconds) || 0));
-    const total = h * 3600 + m * 60 + s;
-    if (total > 0) {
-      setTotalSeconds(total);
-      setRemaining(total);
-      setIsRunning(false);
-      setStarted(false);
-    }
-  };
-
   const applyPreset = (seconds: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setTotalSeconds(seconds);
     setRemaining(seconds);
     setIsRunning(false);
     setStarted(false);
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    setCustomHours(h.toString());
-    setCustomMinutes(m.toString());
-    setCustomSeconds(s.toString());
+    setDrumHours(Math.floor(seconds / 3600));
+    setDrumMinutes(Math.floor((seconds % 3600) / 60));
+    setDrumSeconds(seconds % 60);
   };
 
   const toggleTimer = () => {
@@ -130,7 +232,6 @@ export default function TimerModal({ visible, onClose }: Props) {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  // 1 = full ring, 0 = empty ring (timer done)
   const ringProgress = totalSeconds > 0 ? remaining / totalSeconds : 1;
   const strokeDashoffset = CIRCUMFERENCE * (1 - ringProgress);
 
@@ -155,27 +256,30 @@ export default function TimerModal({ visible, onClose }: Props) {
       borderWidth: 1.5, marginRight: 8,
     },
     presetText: { fontSize: 13, fontWeight: "600", fontFamily: "Inter_600SemiBold" },
-    customRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 24 },
-    customInputWrap: { flex: 1, alignItems: "center" },
-    customInput: {
-      width: "100%", textAlign: "center",
-      backgroundColor: colors.muted, borderRadius: 12,
-      paddingVertical: 12, fontSize: 22, fontWeight: "700",
-      color: colors.foreground, fontFamily: "Inter_700Bold",
+    // Drum picker section
+    drumSection: {
+      backgroundColor: colors.muted, borderRadius: 16,
+      marginBottom: 24, overflow: "hidden",
     },
-    customLabel: { fontSize: 11, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginTop: 4 },
-    colon: { fontSize: 24, fontWeight: "700", color: colors.mutedForeground, fontFamily: "Inter_700Bold", marginBottom: 16 },
-    setBtn: {
-      backgroundColor: colors.primary + "20", borderRadius: 12,
-      paddingHorizontal: 14, paddingVertical: 10, alignItems: "center",
+    drumRow: {
+      flexDirection: "row", alignItems: "center", justifyContent: "center",
+      paddingVertical: 10,
     },
-    setBtnText: { fontSize: 13, fontWeight: "700", color: colors.primary, fontFamily: "Inter_700Bold" },
+    drumWrap: { alignItems: "center" },
+    drumLabel: {
+      fontSize: 11, color: colors.mutedForeground, fontFamily: "Inter_400Regular",
+      marginTop: 4, textAlign: "center",
+    },
+    drumColon: {
+      fontSize: 30, fontWeight: "700", color: colors.mutedForeground,
+      fontFamily: "Inter_700Bold", paddingBottom: 12, paddingHorizontal: 4,
+    },
+    // SVG ring
     timerContainer: { alignItems: "center", marginBottom: 28 },
     timerSvgWrap: { alignItems: "center", justifyContent: "center" },
     timerDisplay: {
       position: "absolute", alignItems: "center",
-      width: SVG_SIZE, height: SVG_SIZE,
-      justifyContent: "center",
+      width: SVG_SIZE, height: SVG_SIZE, justifyContent: "center",
     },
     timerText: {
       fontSize: 38, fontWeight: "700", color: colors.foreground,
@@ -206,6 +310,7 @@ export default function TimerModal({ visible, onClose }: Props) {
               <Text style={styles.sessions}>{sessions} sessions today</Text>
             </View>
 
+            {/* Quick presets */}
             <Text style={styles.presetsLabel}>Quick Presets</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsRow}>
               {QUICK_PRESETS.map((p) => {
@@ -230,69 +335,72 @@ export default function TimerModal({ visible, onClose }: Props) {
               })}
             </ScrollView>
 
+            {/* Wheel drum duration picker */}
             <Text style={styles.presetsLabel}>Custom Duration</Text>
-            <View style={styles.customRow}>
-              <View style={styles.customInputWrap}>
-                <TextInput
-                  style={styles.customInput}
-                  value={customHours}
-                  onChangeText={setCustomHours}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  selectTextOnFocus
-                />
-                <Text style={styles.customLabel}>Hours</Text>
+            <View style={styles.drumSection}>
+              <View style={styles.drumRow}>
+                <View style={styles.drumWrap}>
+                  <WheelDrum
+                    data={HOURS_DATA}
+                    value={drumHours}
+                    onChange={setDrumHours}
+                    formatItem={(v) => v.toString().padStart(2, "0")}
+                    primaryColor={colors.primary}
+                    foreground={colors.foreground}
+                    muted={colors.mutedForeground}
+                    border={colors.border}
+                    card={colors.card}
+                  />
+                  <Text style={styles.drumLabel}>Hours</Text>
+                </View>
+
+                <Text style={styles.drumColon}>:</Text>
+
+                <View style={styles.drumWrap}>
+                  <WheelDrum
+                    data={MINUTES_DATA}
+                    value={drumMinutes}
+                    onChange={setDrumMinutes}
+                    formatItem={(v) => v.toString().padStart(2, "0")}
+                    primaryColor={colors.primary}
+                    foreground={colors.foreground}
+                    muted={colors.mutedForeground}
+                    border={colors.border}
+                    card={colors.card}
+                  />
+                  <Text style={styles.drumLabel}>Minutes</Text>
+                </View>
+
+                <Text style={styles.drumColon}>:</Text>
+
+                <View style={styles.drumWrap}>
+                  <WheelDrum
+                    data={SECONDS_DATA}
+                    value={drumSeconds}
+                    onChange={setDrumSeconds}
+                    formatItem={(v) => v.toString().padStart(2, "0")}
+                    primaryColor={colors.primary}
+                    foreground={colors.foreground}
+                    muted={colors.mutedForeground}
+                    border={colors.border}
+                    card={colors.card}
+                  />
+                  <Text style={styles.drumLabel}>Seconds</Text>
+                </View>
               </View>
-              <Text style={styles.colon}>:</Text>
-              <View style={styles.customInputWrap}>
-                <TextInput
-                  style={styles.customInput}
-                  value={customMinutes}
-                  onChangeText={setCustomMinutes}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  selectTextOnFocus
-                />
-                <Text style={styles.customLabel}>Minutes</Text>
-              </View>
-              <Text style={styles.colon}>:</Text>
-              <View style={styles.customInputWrap}>
-                <TextInput
-                  style={styles.customInput}
-                  value={customSeconds}
-                  onChangeText={setCustomSeconds}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  selectTextOnFocus
-                />
-                <Text style={styles.customLabel}>Seconds</Text>
-              </View>
-              <TouchableOpacity style={styles.setBtn} onPress={applyCustomTime}>
-                <Text style={styles.setBtnText}>Set</Text>
-              </TouchableOpacity>
             </View>
 
             {/* SVG Ring Timer */}
             <View style={styles.timerContainer}>
               <View style={styles.timerSvgWrap}>
                 <Svg width={SVG_SIZE} height={SVG_SIZE}>
-                  {/* Background track — full 360° */}
                   <Circle
-                    cx={CX}
-                    cy={CY}
-                    r={RING_RADIUS}
-                    stroke={colors.muted}
-                    strokeWidth={STROKE_W}
-                    fill="none"
+                    cx={CX} cy={CY} r={RING_RADIUS}
+                    stroke={colors.muted} strokeWidth={STROKE_W} fill="none"
                   />
-                  {/* Animated countdown ring */}
                   <Circle
-                    cx={CX}
-                    cy={CY}
-                    r={RING_RADIUS}
-                    stroke={colors.primary}
-                    strokeWidth={STROKE_W}
-                    fill="none"
+                    cx={CX} cy={CY} r={RING_RADIUS}
+                    stroke={colors.primary} strokeWidth={STROKE_W} fill="none"
                     strokeDasharray={CIRCUMFERENCE}
                     strokeDashoffset={strokeDashoffset}
                     strokeLinecap="round"
