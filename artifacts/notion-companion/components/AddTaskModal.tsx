@@ -6,7 +6,6 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -34,67 +33,73 @@ const CATEGORY_COLORS = [
   "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#94a3b8",
 ];
 
-const ITEM_H = 46;
-const VISIBLE_ITEMS = 5;
+const ITEM_H = 52;
+const VISIBLE = 5;
+const CENTER = Math.floor(VISIBLE / 2); // = 2
+
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 
-function WheelPicker({
+/* ─── Wheel Drum Picker ─── */
+function WheelDrum({
   data,
   value,
   onChange,
   formatItem,
-  colors,
+  primaryColor,
+  foreground,
+  muted,
+  border,
+  card,
 }: {
   data: number[];
   value: number;
   onChange: (v: number) => void;
   formatItem?: (v: number) => string;
-  colors: ReturnType<typeof useColors>;
+  primaryColor: string;
+  foreground: string;
+  muted: string;
+  border: string;
+  card: string;
 }) {
   const scrollRef = useRef<ScrollView>(null);
-  const isScrolling = useRef(false);
+  const [liveIdx, setLiveIdx] = useState(data.indexOf(value));
 
   useEffect(() => {
     const idx = data.indexOf(value);
-    if (idx >= 0 && scrollRef.current) {
-      setTimeout(() => {
-        scrollRef.current?.scrollTo({ y: idx * ITEM_H, animated: false });
-      }, 50);
-    }
+    setLiveIdx(idx);
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: idx * ITEM_H, animated: false });
+    }, 60);
   }, []);
 
-  const handleScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetY = e.nativeEvent.contentOffset.y;
+  const commitIdx = (offsetY: number) => {
     const idx = Math.round(offsetY / ITEM_H);
     const clamped = Math.max(0, Math.min(data.length - 1, idx));
+    setLiveIdx(clamped);
     onChange(data[clamped]);
   };
 
+  const trackIdx = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
+    setLiveIdx(Math.max(0, Math.min(data.length - 1, idx)));
+  };
+
   return (
-    <View style={{ height: ITEM_H * VISIBLE_ITEMS, overflow: "hidden", position: "relative" }}>
-      {/* Highlight bar for selected (middle) item */}
+    <View style={{ width: 80, height: ITEM_H * VISIBLE, overflow: "hidden" }}>
+      {/* iPhone-style selection band lines */}
       <View
         pointerEvents="none"
         style={{
           position: "absolute",
-          top: ITEM_H * Math.floor(VISIBLE_ITEMS / 2),
-          left: 0, right: 0,
+          top: ITEM_H * CENTER,
+          left: 4, right: 4,
           height: ITEM_H,
-          backgroundColor: colors.muted,
-          borderRadius: 10,
-          zIndex: 1,
-        }}
-      />
-      {/* Fade top */}
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute", top: 0, left: 0, right: 0,
-          height: ITEM_H * Math.floor(VISIBLE_ITEMS / 2),
-          zIndex: 2,
-          background: `linear-gradient(to bottom, ${colors.card}, transparent)`,
-          // RN equivalent: opacity fading items handled by opacity per-item
+          borderTopWidth: 1.5,
+          borderBottomWidth: 1.5,
+          borderColor: border,
+          borderRadius: 4,
+          zIndex: 10,
         }}
       />
       <ScrollView
@@ -102,30 +107,28 @@ function WheelPicker({
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_H}
         decelerationRate="fast"
-        contentContainerStyle={{ paddingVertical: ITEM_H * Math.floor(VISIBLE_ITEMS / 2) }}
-        onMomentumScrollEnd={handleScrollEnd}
-        onScrollEndDrag={handleScrollEnd}
-        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingVertical: ITEM_H * CENTER }}
+        onScroll={trackIdx}
+        onMomentumScrollEnd={(e) => commitIdx(e.nativeEvent.contentOffset.y)}
+        onScrollEndDrag={(e) => commitIdx(e.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={8}
       >
         {data.map((item, idx) => {
-          const isSelected = item === value;
-          const distance = Math.abs(data.indexOf(value) - idx);
-          const opacity = distance === 0 ? 1 : distance === 1 ? 0.6 : 0.3;
+          const dist = Math.abs(idx - liveIdx);
+          const isSelected = dist === 0;
+          const opacity = isSelected ? 1 : dist === 1 ? 0.5 : 0.2;
           return (
-            <View
-              key={item}
-              style={{ height: ITEM_H, alignItems: "center", justifyContent: "center" }}
-            >
+            <View key={item} style={{ height: ITEM_H, alignItems: "center", justifyContent: "center" }}>
               <Text
                 style={{
-                  fontSize: isSelected ? 24 : 18,
+                  fontSize: isSelected ? 28 : 20,
                   fontWeight: isSelected ? "700" : "400",
-                  color: isSelected ? colors.foreground : colors.mutedForeground,
+                  color: isSelected ? foreground : muted,
                   fontFamily: isSelected ? "Inter_700Bold" : "Inter_400Regular",
                   opacity,
                 }}
               >
-                {formatItem ? formatItem(item) : item.toString()}
+                {formatItem ? formatItem(item) : String(item)}
               </Text>
             </View>
           );
@@ -135,6 +138,7 @@ function WheelPicker({
   );
 }
 
+/* ─── Main Modal ─── */
 export default function AddTaskModal({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -146,31 +150,21 @@ export default function AddTaskModal({ visible, onClose }: Props) {
   const [selectedCategory, setSelectedCategory] = useState(visibleCategories[0]?.id ?? "");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [alarmEnabled, setAlarmEnabled] = useState(false);
-
-  // 24-hour wheel pickers
   const [alarmHour, setAlarmHour] = useState(9);
   const [alarmMinute, setAlarmMinute] = useState(0);
-
   const [notes, setNotes] = useState("");
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryColor, setNewCategoryColor] = useState(CATEGORY_COLORS[0]);
 
   const getAlarmDate = () => {
-    const now = new Date();
-    now.setHours(alarmHour, alarmMinute, 0, 0);
-    return now;
-  };
-
-  const formatAlarmPreview = () => {
-    return `${alarmHour.toString().padStart(2, "0")}:${alarmMinute.toString().padStart(2, "0")}`;
+    const d = new Date();
+    d.setHours(alarmHour, alarmMinute, 0, 0);
+    return d;
   };
 
   const handleSubmit = () => {
-    if (!title.trim()) {
-      Alert.alert("Please enter a task title");
-      return;
-    }
+    if (!title.trim()) { Alert.alert("Please enter a task title"); return; }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     addTask({
       title: title.trim(),
@@ -218,42 +212,64 @@ export default function AddTaskModal({ visible, onClose }: Props) {
       fontSize: 12, fontWeight: "700", color: colors.mutedForeground,
       marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: "Inter_700Bold",
     },
-    titleRow: {
+    titleInput: {
+      backgroundColor: colors.muted, borderRadius: 14, paddingHorizontal: 14,
+      paddingVertical: 14, fontSize: 16, color: colors.foreground,
+      fontFamily: "Inter_400Regular", marginBottom: 12,
+    },
+    // ── iPhone-style alarm toggle row ──
+    alarmToggleRow: {
       flexDirection: "row", alignItems: "center",
-      backgroundColor: colors.muted, borderRadius: 14, paddingHorizontal: 14, marginBottom: 20,
+      backgroundColor: colors.muted, borderRadius: 14,
+      paddingHorizontal: 16, paddingVertical: 14,
+      marginBottom: 12,
     },
-    titleInput: { flex: 1, fontSize: 16, color: colors.foreground, paddingVertical: 14, fontFamily: "Inter_400Regular" },
-    alarmIconBtn: { padding: 6 },
-    // Alarm section
-    alarmBox: {
-      backgroundColor: colors.muted, borderRadius: 16,
-      paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10, marginBottom: 20,
+    alarmToggleLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
+    alarmIconCircle: {
+      width: 32, height: 32, borderRadius: 9,
+      backgroundColor: "#ef4444",
+      alignItems: "center", justifyContent: "center",
     },
-    alarmBoxHeader: {
-      flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16,
+    alarmToggleLabel: { fontSize: 16, color: colors.foreground, fontFamily: "Inter_500Medium" },
+    alarmToggleTime: { fontSize: 14, color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
+    // ── Alarm picker panel ──
+    alarmPickerPanel: {
+      backgroundColor: colors.muted,
+      borderRadius: 16, marginBottom: 20,
+      overflow: "hidden",
     },
-    alarmBoxLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
-    alarmBoxTitle: { fontSize: 15, fontWeight: "600", color: colors.foreground, fontFamily: "Inter_600SemiBold" },
-    wheelRow: {
-      flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 0,
+    pickerPreviewRow: {
+      alignItems: "center", justifyContent: "center",
+      paddingTop: 18, paddingBottom: 8,
     },
-    wheelLabel: {
+    pickerPreview: {
+      fontSize: 42, fontWeight: "800", letterSpacing: 2,
+      color: colors.foreground, fontFamily: "Inter_700Bold",
+    },
+    pickerSubLabel: {
+      fontSize: 12, color: colors.mutedForeground,
+      fontFamily: "Inter_400Regular", marginBottom: 6,
+    },
+    pickerDivider: { height: 1, backgroundColor: colors.border, marginHorizontal: 16 },
+    drumRow: {
+      flexDirection: "row", alignItems: "center", justifyContent: "center",
+      gap: 0, paddingVertical: 8,
+    },
+    drumWrap: { alignItems: "center" },
+    drumLabel: {
       fontSize: 11, color: colors.mutedForeground, fontFamily: "Inter_400Regular",
-      textAlign: "center", marginTop: 6, marginBottom: 4,
+      marginTop: 4, textAlign: "center",
     },
-    wheelWrap: { flex: 1, alignItems: "center" },
-    colonWrap: { width: 28, alignItems: "center", paddingBottom: 20 },
-    colonText: {
-      fontSize: 28, fontWeight: "700", color: colors.mutedForeground,
-      fontFamily: "Inter_700Bold",
+    drumColon: {
+      fontSize: 36, fontWeight: "700", color: colors.mutedForeground,
+      fontFamily: "Inter_700Bold", paddingBottom: 12, paddingHorizontal: 6,
     },
-    // Categories
+    // categories
     categoriesSection: { marginBottom: 20 },
     categoryRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
     categoryChip: {
       flexDirection: "row", alignItems: "center",
-      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
-      borderWidth: 1.5, gap: 5,
+      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, gap: 5,
     },
     categoryChipText: { fontSize: 13, fontWeight: "600", fontFamily: "Inter_600SemiBold" },
     addCatTrigger: {
@@ -266,8 +282,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     addCatHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
     addCatTitle: { fontSize: 14, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold" },
     addCategoryInput: {
-      backgroundColor: colors.card, borderRadius: 10,
-      paddingHorizontal: 12, paddingVertical: 10,
+      backgroundColor: colors.card, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
       fontSize: 15, color: colors.foreground, marginBottom: 12, fontFamily: "Inter_400Regular",
     },
     colorPickerLabel: { fontSize: 11, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginBottom: 8 },
@@ -279,14 +294,16 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     priorityBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center", borderWidth: 2 },
     priorityText: { fontSize: 13, fontWeight: "700", fontFamily: "Inter_700Bold" },
     notesInput: {
-      backgroundColor: colors.muted, borderRadius: 14,
-      paddingHorizontal: 14, paddingVertical: 12,
-      fontSize: 15, color: colors.foreground, minHeight: 80,
-      marginBottom: 24, fontFamily: "Inter_400Regular", textAlignVertical: "top",
+      backgroundColor: colors.muted, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, color: colors.foreground, minHeight: 80, marginBottom: 24,
+      fontFamily: "Inter_400Regular", textAlignVertical: "top",
     },
     submitBtn: { backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 16, alignItems: "center" },
     submitText: { color: "#ffffff", fontSize: 16, fontWeight: "700", fontFamily: "Inter_700Bold" },
   });
+
+  const hourStr = alarmHour.toString().padStart(2, "0");
+  const minStr = alarmMinute.toString().padStart(2, "0");
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -302,72 +319,90 @@ export default function AddTaskModal({ visible, onClose }: Props) {
             </View>
 
             <ScrollView style={s.content} showsVerticalScrollIndicator={false}>
+
+              {/* ── Title ── */}
               <Text style={s.label}>Task Title</Text>
-              <View style={s.titleRow}>
-                <TextInput
-                  style={s.titleInput}
-                  placeholder="What do you need to do?"
-                  placeholderTextColor={colors.mutedForeground}
-                  value={title}
-                  onChangeText={setTitle}
-                  autoFocus
-                />
-                <TouchableOpacity
-                  style={s.alarmIconBtn}
-                  onPress={() => {
+              <TextInput
+                style={s.titleInput}
+                placeholder="What do you need to do?"
+                placeholderTextColor={colors.mutedForeground}
+                value={title}
+                onChangeText={setTitle}
+                autoFocus
+              />
+
+              {/* ── Alarm toggle row (iPhone-style) ── */}
+              <View style={s.alarmToggleRow}>
+                <View style={s.alarmToggleLeft}>
+                  <View style={s.alarmIconCircle}>
+                    <Feather name="bell" size={16} color="#fff" />
+                  </View>
+                  <View>
+                    <Text style={s.alarmToggleLabel}>Alarm Reminder</Text>
+                    {alarmEnabled && (
+                      <Text style={s.alarmToggleTime}>{hourStr}:{minStr}</Text>
+                    )}
+                  </View>
+                </View>
+                <Switch
+                  value={alarmEnabled}
+                  onValueChange={(v) => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setAlarmEnabled(!alarmEnabled);
+                    setAlarmEnabled(v);
                   }}
-                >
-                  <Feather name="bell" size={20} color={alarmEnabled ? colors.primary : colors.mutedForeground} />
-                </TouchableOpacity>
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor="#fff"
+                />
               </View>
 
+              {/* ── Alarm drum picker ── */}
               {alarmEnabled && (
-                <View style={s.alarmBox}>
-                  <View style={s.alarmBoxHeader}>
-                    <View style={s.alarmBoxLeft}>
-                      <Feather name="bell" size={16} color={colors.primary} />
-                      <Text style={s.alarmBoxTitle}>Alarm at {formatAlarmPreview()}</Text>
-                    </View>
-                    <Switch
-                      value={alarmEnabled}
-                      onValueChange={setAlarmEnabled}
-                      trackColor={{ true: colors.primary }}
-                      thumbColor="#fff"
-                    />
+                <View style={s.alarmPickerPanel}>
+                  {/* Big time preview */}
+                  <View style={s.pickerPreviewRow}>
+                    <Text style={s.pickerPreview}>{hourStr}:{minStr}</Text>
+                    <Text style={s.pickerSubLabel}>24-hour format</Text>
                   </View>
+                  <View style={s.pickerDivider} />
 
-                  <View style={s.wheelRow}>
-                    <View style={s.wheelWrap}>
-                      <WheelPicker
+                  {/* Drums */}
+                  <View style={s.drumRow}>
+                    <View style={s.drumWrap}>
+                      <WheelDrum
                         data={HOURS}
                         value={alarmHour}
                         onChange={setAlarmHour}
                         formatItem={(v) => v.toString().padStart(2, "0")}
-                        colors={colors}
+                        primaryColor={colors.primary}
+                        foreground={colors.foreground}
+                        muted={colors.mutedForeground}
+                        border={colors.border}
+                        card={colors.card}
                       />
-                      <Text style={s.wheelLabel}>Hour</Text>
+                      <Text style={s.drumLabel}>Hour</Text>
                     </View>
 
-                    <View style={s.colonWrap}>
-                      <Text style={s.colonText}>:</Text>
-                    </View>
+                    <Text style={s.drumColon}>:</Text>
 
-                    <View style={s.wheelWrap}>
-                      <WheelPicker
+                    <View style={s.drumWrap}>
+                      <WheelDrum
                         data={MINUTES}
                         value={alarmMinute}
                         onChange={setAlarmMinute}
                         formatItem={(v) => v.toString().padStart(2, "0")}
-                        colors={colors}
+                        primaryColor={colors.primary}
+                        foreground={colors.foreground}
+                        muted={colors.mutedForeground}
+                        border={colors.border}
+                        card={colors.card}
                       />
-                      <Text style={s.wheelLabel}>Minute</Text>
+                      <Text style={s.drumLabel}>Minute</Text>
                     </View>
                   </View>
                 </View>
               )}
 
+              {/* ── Category ── */}
               <Text style={s.label}>Category</Text>
               <View style={s.categoriesSection}>
                 <View style={s.categoryRow}>
@@ -378,17 +413,12 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                         key={cat.id}
                         style={[
                           s.categoryChip,
-                          {
-                            backgroundColor: isSelected ? cat.color + "20" : "transparent",
-                            borderColor: isSelected ? cat.color : colors.border,
-                          },
+                          { backgroundColor: isSelected ? cat.color + "20" : "transparent", borderColor: isSelected ? cat.color : colors.border },
                         ]}
                         onPress={() => setSelectedCategory(cat.id)}
                       >
                         <Feather name={cat.icon as any} size={13} color={isSelected ? cat.color : colors.mutedForeground} />
-                        <Text style={[s.categoryChipText, { color: isSelected ? cat.color : colors.mutedForeground }]}>
-                          {cat.name}
-                        </Text>
+                        <Text style={[s.categoryChipText, { color: isSelected ? cat.color : colors.mutedForeground }]}>{cat.name}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -430,6 +460,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                 )}
               </View>
 
+              {/* ── Priority ── */}
               <Text style={s.label}>Priority</Text>
               <View style={s.priorityRow}>
                 {PRIORITY_OPTIONS.map((opt) => {
@@ -443,14 +474,13 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                       ]}
                       onPress={() => setPriority(opt.value)}
                     >
-                      <Text style={[s.priorityText, { color: isSelected ? opt.color : colors.mutedForeground }]}>
-                        {opt.label}
-                      </Text>
+                      <Text style={[s.priorityText, { color: isSelected ? opt.color : colors.mutedForeground }]}>{opt.label}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
 
+              {/* ── Notes ── */}
               <Text style={s.label}>Notes (optional)</Text>
               <TextInput
                 style={s.notesInput}
