@@ -11,14 +11,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
 
-type Props = {
-  visible: boolean;
-  onClose: () => void;
-};
+type Props = { visible: boolean; onClose: () => void };
 
 const QUICK_PRESETS = [
   { label: "5 min", seconds: 5 * 60 },
@@ -30,6 +28,13 @@ const QUICK_PRESETS = [
   { label: "90 min", seconds: 90 * 60 },
   { label: "2 hr", seconds: 120 * 60 },
 ];
+
+const RING_RADIUS = 78;
+const STROKE_W = 10;
+const SVG_SIZE = (RING_RADIUS + STROKE_W) * 2 + 4;
+const CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+const CX = SVG_SIZE / 2;
+const CY = SVG_SIZE / 2;
 
 export default function TimerModal({ visible, onClose }: Props) {
   const colors = useColors();
@@ -125,7 +130,9 @@ export default function TimerModal({ visible, onClose }: Props) {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  const progress = totalSeconds > 0 ? (totalSeconds - remaining) / totalSeconds : 0;
+  // 1 = full ring, 0 = empty ring (timer done)
+  const ringProgress = totalSeconds > 0 ? remaining / totalSeconds : 1;
+  const strokeDashoffset = CIRCUMFERENCE * (1 - ringProgress);
 
   const styles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
@@ -148,9 +155,7 @@ export default function TimerModal({ visible, onClose }: Props) {
       borderWidth: 1.5, marginRight: 8,
     },
     presetText: { fontSize: 13, fontWeight: "600", fontFamily: "Inter_600SemiBold" },
-    customRow: {
-      flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 24,
-    },
+    customRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 24 },
     customInputWrap: { flex: 1, alignItems: "center" },
     customInput: {
       width: "100%", textAlign: "center",
@@ -166,16 +171,12 @@ export default function TimerModal({ visible, onClose }: Props) {
     },
     setBtnText: { fontSize: 13, fontWeight: "700", color: colors.primary, fontFamily: "Inter_700Bold" },
     timerContainer: { alignItems: "center", marginBottom: 28 },
-    timerCircleWrap: { width: 180, height: 180, alignItems: "center", justifyContent: "center" },
-    timerCircleBg: {
-      position: "absolute", width: 170, height: 170, borderRadius: 85,
-      borderWidth: 8, borderColor: colors.muted,
+    timerSvgWrap: { alignItems: "center", justifyContent: "center" },
+    timerDisplay: {
+      position: "absolute", alignItems: "center",
+      width: SVG_SIZE, height: SVG_SIZE,
+      justifyContent: "center",
     },
-    timerCircleFg: {
-      position: "absolute", width: 170, height: 170, borderRadius: 85,
-      borderWidth: 8, borderLeftColor: "transparent", borderBottomColor: "transparent",
-    },
-    timerDisplay: { position: "absolute", alignItems: "center" },
     timerText: {
       fontSize: 38, fontWeight: "700", color: colors.foreground,
       fontFamily: "Inter_700Bold", letterSpacing: -1,
@@ -192,11 +193,6 @@ export default function TimerModal({ visible, onClose }: Props) {
       shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
     },
-    progressBg: {
-      height: 4, borderRadius: 2, backgroundColor: colors.muted,
-      marginHorizontal: 0, marginBottom: 20, overflow: "hidden",
-    },
-    progressFill: { height: "100%", borderRadius: 2, backgroundColor: colors.primary },
   });
 
   return (
@@ -276,26 +272,38 @@ export default function TimerModal({ visible, onClose }: Props) {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.progressBg}>
-              <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
-            </View>
-
+            {/* SVG Ring Timer */}
             <View style={styles.timerContainer}>
-              <View style={styles.timerCircleWrap}>
-                <View style={styles.timerCircleBg} />
-                <View
-                  style={[
-                    styles.timerCircleFg,
-                    {
-                      borderTopColor: colors.primary,
-                      borderRightColor: progress > 0.25 ? colors.primary : "transparent",
-                      transform: [{ rotate: `${progress * 360 - 90}deg` }],
-                    },
-                  ]}
-                />
+              <View style={styles.timerSvgWrap}>
+                <Svg width={SVG_SIZE} height={SVG_SIZE}>
+                  {/* Background track — full 360° */}
+                  <Circle
+                    cx={CX}
+                    cy={CY}
+                    r={RING_RADIUS}
+                    stroke={colors.muted}
+                    strokeWidth={STROKE_W}
+                    fill="none"
+                  />
+                  {/* Animated countdown ring */}
+                  <Circle
+                    cx={CX}
+                    cy={CY}
+                    r={RING_RADIUS}
+                    stroke={colors.primary}
+                    strokeWidth={STROKE_W}
+                    fill="none"
+                    strokeDasharray={CIRCUMFERENCE}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    transform={`rotate(-90, ${CX}, ${CY})`}
+                  />
+                </Svg>
                 <View style={styles.timerDisplay}>
                   <Text style={styles.timerText}>{formatTime(remaining)}</Text>
-                  <Text style={styles.timerSub}>{isRunning ? "Running" : started ? "Paused" : "Ready"}</Text>
+                  <Text style={styles.timerSub}>
+                    {isRunning ? "Running" : started ? "Paused" : "Ready"}
+                  </Text>
                 </View>
               </View>
             </View>

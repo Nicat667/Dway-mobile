@@ -1,9 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -32,6 +34,107 @@ const CATEGORY_COLORS = [
   "#10b981", "#8b5cf6", "#f97316", "#06b6d4", "#94a3b8",
 ];
 
+const ITEM_H = 46;
+const VISIBLE_ITEMS = 5;
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
+
+function WheelPicker({
+  data,
+  value,
+  onChange,
+  formatItem,
+  colors,
+}: {
+  data: number[];
+  value: number;
+  onChange: (v: number) => void;
+  formatItem?: (v: number) => string;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const scrollRef = useRef<ScrollView>(null);
+  const isScrolling = useRef(false);
+
+  useEffect(() => {
+    const idx = data.indexOf(value);
+    if (idx >= 0 && scrollRef.current) {
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ y: idx * ITEM_H, animated: false });
+      }, 50);
+    }
+  }, []);
+
+  const handleScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = e.nativeEvent.contentOffset.y;
+    const idx = Math.round(offsetY / ITEM_H);
+    const clamped = Math.max(0, Math.min(data.length - 1, idx));
+    onChange(data[clamped]);
+  };
+
+  return (
+    <View style={{ height: ITEM_H * VISIBLE_ITEMS, overflow: "hidden", position: "relative" }}>
+      {/* Highlight bar for selected (middle) item */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: ITEM_H * Math.floor(VISIBLE_ITEMS / 2),
+          left: 0, right: 0,
+          height: ITEM_H,
+          backgroundColor: colors.muted,
+          borderRadius: 10,
+          zIndex: 1,
+        }}
+      />
+      {/* Fade top */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute", top: 0, left: 0, right: 0,
+          height: ITEM_H * Math.floor(VISIBLE_ITEMS / 2),
+          zIndex: 2,
+          background: `linear-gradient(to bottom, ${colors.card}, transparent)`,
+          // RN equivalent: opacity fading items handled by opacity per-item
+        }}
+      />
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        snapToInterval={ITEM_H}
+        decelerationRate="fast"
+        contentContainerStyle={{ paddingVertical: ITEM_H * Math.floor(VISIBLE_ITEMS / 2) }}
+        onMomentumScrollEnd={handleScrollEnd}
+        onScrollEndDrag={handleScrollEnd}
+        scrollEventThrottle={16}
+      >
+        {data.map((item, idx) => {
+          const isSelected = item === value;
+          const distance = Math.abs(data.indexOf(value) - idx);
+          const opacity = distance === 0 ? 1 : distance === 1 ? 0.6 : 0.3;
+          return (
+            <View
+              key={item}
+              style={{ height: ITEM_H, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text
+                style={{
+                  fontSize: isSelected ? 24 : 18,
+                  fontWeight: isSelected ? "700" : "400",
+                  color: isSelected ? colors.foreground : colors.mutedForeground,
+                  fontFamily: isSelected ? "Inter_700Bold" : "Inter_400Regular",
+                  opacity,
+                }}
+              >
+                {formatItem ? formatItem(item) : item.toString()}
+              </Text>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function AddTaskModal({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -44,10 +147,9 @@ export default function AddTaskModal({ visible, onClose }: Props) {
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [alarmEnabled, setAlarmEnabled] = useState(false);
 
-  // Custom time inputs
-  const [alarmHour, setAlarmHour] = useState("9");
-  const [alarmMinute, setAlarmMinute] = useState("00");
-  const [alarmAmPm, setAlarmAmPm] = useState<"AM" | "PM">("AM");
+  // 24-hour wheel pickers
+  const [alarmHour, setAlarmHour] = useState(9);
+  const [alarmMinute, setAlarmMinute] = useState(0);
 
   const [notes, setNotes] = useState("");
   const [showAddCategory, setShowAddCategory] = useState(false);
@@ -56,18 +158,12 @@ export default function AddTaskModal({ visible, onClose }: Props) {
 
   const getAlarmDate = () => {
     const now = new Date();
-    let h = Math.max(1, Math.min(12, parseInt(alarmHour) || 12));
-    const m = Math.max(0, Math.min(59, parseInt(alarmMinute) || 0));
-    if (alarmAmPm === "PM" && h !== 12) h += 12;
-    if (alarmAmPm === "AM" && h === 12) h = 0;
-    now.setHours(h, m, 0, 0);
+    now.setHours(alarmHour, alarmMinute, 0, 0);
     return now;
   };
 
   const formatAlarmPreview = () => {
-    const h = Math.max(1, Math.min(12, parseInt(alarmHour) || 12));
-    const m = Math.max(0, Math.min(59, parseInt(alarmMinute) || 0));
-    return `${h}:${m.toString().padStart(2, "0")} ${alarmAmPm}`;
+    return `${alarmHour.toString().padStart(2, "0")}:${alarmMinute.toString().padStart(2, "0")}`;
   };
 
   const handleSubmit = () => {
@@ -94,9 +190,8 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     setSelectedCategory(visibleCategories[0]?.id ?? "");
     setPriority("medium");
     setAlarmEnabled(false);
-    setAlarmHour("9");
-    setAlarmMinute("00");
-    setAlarmAmPm("AM");
+    setAlarmHour(9);
+    setAlarmMinute(0);
     setNotes("");
     setShowAddCategory(false);
     setNewCategoryName("");
@@ -132,40 +227,26 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     // Alarm section
     alarmBox: {
       backgroundColor: colors.muted, borderRadius: 16,
-      padding: 16, marginBottom: 20,
+      paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10, marginBottom: 20,
     },
     alarmBoxHeader: {
-      flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14,
+      flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16,
     },
     alarmBoxLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
     alarmBoxTitle: { fontSize: 15, fontWeight: "600", color: colors.foreground, fontFamily: "Inter_600SemiBold" },
-    alarmPreview: {
-      fontSize: 22, fontWeight: "800", color: colors.primary,
-      fontFamily: "Inter_700Bold", textAlign: "center", marginBottom: 14,
+    wheelRow: {
+      flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 0,
     },
-    alarmInputRow: { flexDirection: "row", alignItems: "flex-end", gap: 6, marginBottom: 12 },
-    alarmInputWrap: { flex: 1, alignItems: "center" },
-    alarmInput: {
-      width: "100%", textAlign: "center",
-      backgroundColor: colors.card, borderRadius: 10,
-      paddingVertical: 10, fontSize: 20, fontWeight: "700",
-      color: colors.foreground, fontFamily: "Inter_700Bold",
-      borderWidth: 1.5, borderColor: colors.border,
+    wheelLabel: {
+      fontSize: 11, color: colors.mutedForeground, fontFamily: "Inter_400Regular",
+      textAlign: "center", marginTop: 6, marginBottom: 4,
     },
-    alarmInputLabel: {
-      fontSize: 11, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginTop: 4, textAlign: "center",
+    wheelWrap: { flex: 1, alignItems: "center" },
+    colonWrap: { width: 28, alignItems: "center", paddingBottom: 20 },
+    colonText: {
+      fontSize: 28, fontWeight: "700", color: colors.mutedForeground,
+      fontFamily: "Inter_700Bold",
     },
-    colonText: { fontSize: 22, fontWeight: "700", color: colors.mutedForeground, fontFamily: "Inter_700Bold", marginBottom: 22 },
-    ampmRow: { flexDirection: "row", gap: 6 },
-    ampmBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center", borderWidth: 2 },
-    ampmText: { fontSize: 14, fontWeight: "700", fontFamily: "Inter_700Bold" },
-    quickAlarmLabel: { fontSize: 11, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginBottom: 8, marginTop: 4 },
-    quickAlarmRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-    quickAlarmChip: {
-      paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
-      borderWidth: 1, borderColor: colors.border,
-    },
-    quickAlarmText: { fontSize: 12, color: colors.foreground, fontFamily: "Inter_500Medium" },
     // Categories
     categoriesSection: { marginBottom: 20 },
     categoryRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -194,7 +275,6 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     colorDot: { width: 30, height: 30, borderRadius: 15, borderWidth: 3 },
     addCatBtn: { backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 10, alignItems: "center" },
     addCatBtnText: { color: "#fff", fontWeight: "700", fontFamily: "Inter_700Bold", fontSize: 14 },
-    // Priority
     priorityRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
     priorityBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center", borderWidth: 2 },
     priorityText: { fontSize: 13, fontWeight: "700", fontFamily: "Inter_700Bold" },
@@ -207,15 +287,6 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     submitBtn: { backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 16, alignItems: "center" },
     submitText: { color: "#ffffff", fontSize: 16, fontWeight: "700", fontFamily: "Inter_700Bold" },
   });
-
-  const QUICK_TIMES = [
-    { label: "7:00 AM", h: "7", m: "00", ap: "AM" as const },
-    { label: "8:30 AM", h: "8", m: "30", ap: "AM" as const },
-    { label: "12:00 PM", h: "12", m: "00", ap: "PM" as const },
-    { label: "3:00 PM", h: "3", m: "00", ap: "PM" as const },
-    { label: "6:00 PM", h: "6", m: "00", ap: "PM" as const },
-    { label: "9:00 PM", h: "9", m: "00", ap: "PM" as const },
-  ];
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -257,7 +328,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                   <View style={s.alarmBoxHeader}>
                     <View style={s.alarmBoxLeft}>
                       <Feather name="bell" size={16} color={colors.primary} />
-                      <Text style={s.alarmBoxTitle}>Set Alarm Time</Text>
+                      <Text style={s.alarmBoxTitle}>Alarm at {formatAlarmPreview()}</Text>
                     </View>
                     <Switch
                       value={alarmEnabled}
@@ -267,89 +338,32 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                     />
                   </View>
 
-                  <Text style={s.alarmPreview}>{formatAlarmPreview()}</Text>
-
-                  <View style={s.alarmInputRow}>
-                    <View style={s.alarmInputWrap}>
-                      <TextInput
-                        style={s.alarmInput}
+                  <View style={s.wheelRow}>
+                    <View style={s.wheelWrap}>
+                      <WheelPicker
+                        data={HOURS}
                         value={alarmHour}
-                        onChangeText={(v) => setAlarmHour(v.replace(/[^0-9]/g, "").slice(0, 2))}
-                        keyboardType="number-pad"
-                        maxLength={2}
-                        selectTextOnFocus
-                        placeholder="9"
-                        placeholderTextColor={colors.mutedForeground}
+                        onChange={setAlarmHour}
+                        formatItem={(v) => v.toString().padStart(2, "0")}
+                        colors={colors}
                       />
-                      <Text style={s.alarmInputLabel}>Hour</Text>
+                      <Text style={s.wheelLabel}>Hour</Text>
                     </View>
-                    <Text style={s.colonText}>:</Text>
-                    <View style={s.alarmInputWrap}>
-                      <TextInput
-                        style={s.alarmInput}
-                        value={alarmMinute}
-                        onChangeText={(v) => {
-                          const n = v.replace(/[^0-9]/g, "").slice(0, 2);
-                          setAlarmMinute(n);
-                        }}
-                        keyboardType="number-pad"
-                        maxLength={2}
-                        selectTextOnFocus
-                        placeholder="00"
-                        placeholderTextColor={colors.mutedForeground}
-                      />
-                      <Text style={s.alarmInputLabel}>Minute</Text>
-                    </View>
-                    <View style={{ width: 70 }}>
-                      <View style={s.ampmRow}>
-                        {(["AM", "PM"] as const).map((v) => (
-                          <TouchableOpacity
-                            key={v}
-                            style={[
-                              s.ampmBtn,
-                              {
-                                backgroundColor: alarmAmPm === v ? colors.primary + "20" : "transparent",
-                                borderColor: alarmAmPm === v ? colors.primary : colors.border,
-                              },
-                            ]}
-                            onPress={() => setAlarmAmPm(v)}
-                          >
-                            <Text style={[s.ampmText, { color: alarmAmPm === v ? colors.primary : colors.mutedForeground }]}>
-                              {v}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                      <Text style={[s.alarmInputLabel, { textAlign: "center" }]}>AM / PM</Text>
-                    </View>
-                  </View>
 
-                  <Text style={s.quickAlarmLabel}>Quick select</Text>
-                  <View style={s.quickAlarmRow}>
-                    {QUICK_TIMES.map((qt) => {
-                      const isActive = alarmHour === qt.h && alarmMinute === qt.m && alarmAmPm === qt.ap;
-                      return (
-                        <TouchableOpacity
-                          key={qt.label}
-                          style={[
-                            s.quickAlarmChip,
-                            {
-                              backgroundColor: isActive ? colors.primary + "18" : "transparent",
-                              borderColor: isActive ? colors.primary : colors.border,
-                            },
-                          ]}
-                          onPress={() => {
-                            setAlarmHour(qt.h);
-                            setAlarmMinute(qt.m);
-                            setAlarmAmPm(qt.ap);
-                          }}
-                        >
-                          <Text style={[s.quickAlarmText, { color: isActive ? colors.primary : colors.mutedForeground }]}>
-                            {qt.label}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
+                    <View style={s.colonWrap}>
+                      <Text style={s.colonText}>:</Text>
+                    </View>
+
+                    <View style={s.wheelWrap}>
+                      <WheelPicker
+                        data={MINUTES}
+                        value={alarmMinute}
+                        onChange={setAlarmMinute}
+                        formatItem={(v) => v.toString().padStart(2, "0")}
+                        colors={colors}
+                      />
+                      <Text style={s.wheelLabel}>Minute</Text>
+                    </View>
                   </View>
                 </View>
               )}

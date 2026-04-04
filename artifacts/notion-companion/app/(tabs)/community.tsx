@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
 import {
+  FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -245,13 +246,56 @@ export default function CommunityScreen() {
     participantsText: { fontSize: 12, color: colors.mutedForeground, fontFamily: "Inter_400Regular", flex: 1, marginLeft: 4 },
     joinBtn: { paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5 },
     joinBtnText: { fontSize: 13, fontWeight: "700", fontFamily: "Inter_700Bold" },
-    // Comment modal
-    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-    modalContainer: {
-      backgroundColor: colors.card,
-      borderTopLeftRadius: 24, borderTopRightRadius: 24,
-      paddingTop: 12, maxHeight: "80%",
+    // Comment full-screen
+    commentScreen: { flex: 1, backgroundColor: colors.background },
+    commentScreenHeader: {
+      flexDirection: "row", alignItems: "center",
+      paddingHorizontal: 16, paddingTop: Platform.OS === "web" ? insets.top + 67 : insets.top + 16,
+      paddingBottom: 14,
+      borderBottomWidth: 1, borderBottomColor: colors.border,
+      gap: 12,
     },
+    commentScreenBack: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: colors.muted, alignItems: "center", justifyContent: "center",
+    },
+    commentScreenTitle: { fontSize: 17, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold", flex: 1 },
+    commentScreenCount: { fontSize: 13, color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
+    postSnippet: {
+      paddingHorizontal: 20, paddingVertical: 14,
+      borderBottomWidth: 1, borderBottomColor: colors.border,
+      backgroundColor: colors.card,
+    },
+    postSnippetUser: { fontSize: 13, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold", marginBottom: 4 },
+    postSnippetMsg: { fontSize: 13, color: colors.mutedForeground, fontFamily: "Inter_400Regular", lineHeight: 18 },
+    commentsList: { flex: 1 },
+    commentsContent: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 },
+    noComments: { textAlign: "center", color: colors.mutedForeground, fontFamily: "Inter_400Regular", paddingVertical: 40, fontSize: 15 },
+    commentItem: { flexDirection: "row", marginBottom: 18 },
+    commentAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", marginRight: 10, flexShrink: 0 },
+    commentAvatarText: { fontSize: 13, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" },
+    commentBubble: { flex: 1, backgroundColor: colors.muted, borderRadius: 14, padding: 12 },
+    commentUser: { fontSize: 13, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold" },
+    commentText: { fontSize: 14, color: colors.foreground, fontFamily: "Inter_400Regular", lineHeight: 20, marginTop: 3 },
+    commentTime: { fontSize: 11, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginTop: 5 },
+    commentInputRow: {
+      flexDirection: "row", alignItems: "center",
+      paddingHorizontal: 16, paddingVertical: 12,
+      paddingBottom: insets.bottom + 12,
+      borderTopWidth: 1, borderTopColor: colors.border, gap: 10,
+      backgroundColor: colors.card,
+    },
+    commentInput: {
+      flex: 1, backgroundColor: colors.muted,
+      borderRadius: 22, paddingHorizontal: 16, paddingVertical: 11,
+      fontSize: 14, color: colors.foreground, fontFamily: "Inter_400Regular",
+    },
+    sendBtn: {
+      width: 42, height: 42, borderRadius: 21,
+      backgroundColor: colors.primary, alignItems: "center", justifyContent: "center",
+    },
+    // kept for new-post modal
+    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
     modalHandle: {
       width: 40, height: 4, backgroundColor: colors.border,
       borderRadius: 2, alignSelf: "center", marginBottom: 16,
@@ -262,30 +306,6 @@ export default function CommunityScreen() {
     },
     modalTitle: {
       fontSize: 17, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold",
-    },
-    commentsList: { paddingHorizontal: 20, maxHeight: 300 },
-    noComments: { textAlign: "center", color: colors.mutedForeground, fontFamily: "Inter_400Regular", paddingVertical: 20 },
-    commentItem: { flexDirection: "row" },
-    commentAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", marginRight: 8 },
-    commentAvatarText: { fontSize: 11, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" },
-    commentBubble: { flex: 1, backgroundColor: colors.muted, borderRadius: 12, padding: 10 },
-    commentUser: { fontSize: 12, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold" },
-    commentText: { fontSize: 13, color: colors.foreground, fontFamily: "Inter_400Regular", lineHeight: 18, marginTop: 2 },
-    commentTime: { fontSize: 10, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginTop: 3 },
-    commentInputRow: {
-      flexDirection: "row", alignItems: "center",
-      paddingHorizontal: 16, paddingVertical: 12,
-      paddingBottom: insets.bottom + 12,
-      borderTopWidth: 1, borderTopColor: colors.border, gap: 10,
-    },
-    commentInput: {
-      flex: 1, backgroundColor: colors.muted,
-      borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10,
-      fontSize: 14, color: colors.foreground, fontFamily: "Inter_400Regular",
-    },
-    sendBtn: {
-      width: 38, height: 38, borderRadius: 19,
-      backgroundColor: colors.primary, alignItems: "center", justifyContent: "center",
     },
     // New post modal
     newPostContainer: {
@@ -489,57 +509,91 @@ export default function CommunityScreen() {
         </Pressable>
       </Modal>
 
-      {/* Comment Modal */}
-      <Modal visible={!!activeCommentPost} transparent animationType="slide" onRequestClose={() => setActiveCommentPost(null)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setActiveCommentPost(null)}>
-          <Pressable onPress={() => {}}>
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-              <View style={styles.modalContainer}>
-                <View style={styles.modalHandle} />
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Comments</Text>
-                  <TouchableOpacity onPress={() => setActiveCommentPost(null)}>
-                    <Feather name="x" size={22} color={colors.mutedForeground} />
-                  </TouchableOpacity>
+      {/* Comment Full-Screen Modal */}
+      <Modal
+        visible={!!activeCommentPost}
+        animationType="slide"
+        onRequestClose={() => setActiveCommentPost(null)}
+      >
+        <KeyboardAvoidingView
+          style={styles.commentScreen}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={0}
+        >
+          {/* Header */}
+          <View style={styles.commentScreenHeader}>
+            <TouchableOpacity
+              style={styles.commentScreenBack}
+              onPress={() => setActiveCommentPost(null)}
+            >
+              <Feather name="arrow-left" size={18} color={colors.foreground} />
+            </TouchableOpacity>
+            <Text style={styles.commentScreenTitle}>Comments</Text>
+            <Text style={styles.commentScreenCount}>
+              {activePost?.comments.length ?? 0}
+            </Text>
+          </View>
+
+          {/* Post snippet */}
+          {activePost && (
+            <View style={styles.postSnippet}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <View style={[styles.commentAvatar, { backgroundColor: activePost.avatarColor, width: 28, height: 28, borderRadius: 14 }]}>
+                  <Text style={[styles.commentAvatarText, { fontSize: 11 }]}>{activePost.avatar}</Text>
                 </View>
-                <ScrollView style={styles.commentsList}>
-                  {activePost?.comments.length === 0 && (
-                    <Text style={styles.noComments}>No comments yet. Be the first!</Text>
-                  )}
-                  {activePost?.comments.map((c) => (
-                    <View key={c.id} style={[styles.commentItem, { marginBottom: 14 }]}>
-                      <View style={[styles.commentAvatar, { backgroundColor: c.avatarColor }]}>
-                        <Text style={styles.commentAvatarText}>{c.user.charAt(0)}</Text>
-                      </View>
-                      <View style={styles.commentBubble}>
-                        <Text style={styles.commentUser}>{c.user}</Text>
-                        <Text style={styles.commentText}>{c.text}</Text>
-                        <Text style={styles.commentTime}>{c.time}</Text>
-                      </View>
-                    </View>
-                  ))}
-                </ScrollView>
-                <View style={styles.commentInputRow}>
-                  <TextInput
-                    style={styles.commentInput}
-                    placeholder="Write a comment..."
-                    placeholderTextColor={colors.mutedForeground}
-                    value={commentText}
-                    onChangeText={setCommentText}
-                    returnKeyType="send"
-                    onSubmitEditing={() => activeCommentPost && submitComment(activeCommentPost)}
-                  />
-                  <TouchableOpacity
-                    style={[styles.sendBtn, { opacity: commentText.trim() ? 1 : 0.5 }]}
-                    onPress={() => activeCommentPost && submitComment(activeCommentPost)}
-                  >
-                    <Feather name="send" size={16} color="#fff" />
-                  </TouchableOpacity>
+                <Text style={styles.postSnippetUser}>{activePost.user}</Text>
+                <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: activePost.categoryColor + "20" }}>
+                  <Text style={{ fontSize: 10, fontWeight: "600", color: activePost.categoryColor, fontFamily: "Inter_600SemiBold" }}>
+                    {activePost.category}
+                  </Text>
                 </View>
               </View>
-            </KeyboardAvoidingView>
-          </Pressable>
-        </Pressable>
+              <Text style={styles.postSnippetMsg} numberOfLines={2}>{activePost.message}</Text>
+            </View>
+          )}
+
+          {/* Comments list */}
+          <FlatList
+            style={styles.commentsList}
+            contentContainerStyle={styles.commentsContent}
+            data={activePost?.comments ?? []}
+            keyExtractor={(c) => c.id}
+            ListEmptyComponent={
+              <Text style={styles.noComments}>No comments yet. Be the first!</Text>
+            }
+            renderItem={({ item: c }) => (
+              <View style={styles.commentItem}>
+                <View style={[styles.commentAvatar, { backgroundColor: c.avatarColor }]}>
+                  <Text style={styles.commentAvatarText}>{c.user.charAt(0)}</Text>
+                </View>
+                <View style={styles.commentBubble}>
+                  <Text style={styles.commentUser}>{c.user}</Text>
+                  <Text style={styles.commentText}>{c.text}</Text>
+                  <Text style={styles.commentTime}>{c.time}</Text>
+                </View>
+              </View>
+            )}
+          />
+
+          {/* Input */}
+          <View style={styles.commentInputRow}>
+            <TextInput
+              style={styles.commentInput}
+              placeholder="Write a comment..."
+              placeholderTextColor={colors.mutedForeground}
+              value={commentText}
+              onChangeText={setCommentText}
+              returnKeyType="send"
+              onSubmitEditing={() => activeCommentPost && submitComment(activeCommentPost)}
+            />
+            <TouchableOpacity
+              style={[styles.sendBtn, { opacity: commentText.trim() ? 1 : 0.5 }]}
+              onPress={() => activeCommentPost && submitComment(activeCommentPost)}
+            >
+              <Feather name="send" size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
