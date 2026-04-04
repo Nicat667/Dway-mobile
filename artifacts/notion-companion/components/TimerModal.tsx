@@ -148,6 +148,7 @@ export default function TimerModal({ visible, onClose }: Props) {
 
   const [isRunning, setIsRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
+  // totalSeconds and remaining only used while timer is running/paused
   const [totalSeconds, setTotalSeconds] = useState(25 * 60);
   const [remaining, setRemaining] = useState(25 * 60);
   const [started, setStarted] = useState(false);
@@ -156,19 +157,14 @@ export default function TimerModal({ visible, onClose }: Props) {
   const [drumMinutes, setDrumMinutes] = useState(25);
   const [drumSeconds, setDrumSeconds] = useState(0);
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Derived: what the drums currently show
+  const drumTotal = drumHours * 3600 + drumMinutes * 60 + drumSeconds;
 
-  // Apply wheel values to timer whenever drums change (while not running)
-  useEffect(() => {
-    if (!isRunning) {
-      const total = drumHours * 3600 + drumMinutes * 60 + drumSeconds;
-      if (total > 0) {
-        setTotalSeconds(total);
-        setRemaining(total);
-        setStarted(false);
-      }
-    }
-  }, [drumHours, drumMinutes, drumSeconds]);
+  // While not started, ring + text preview the drum value live
+  const activeTotal = started ? totalSeconds : (drumTotal > 0 ? drumTotal : 1);
+  const activeRemaining = started ? remaining : drumTotal;
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (isRunning) {
@@ -206,12 +202,14 @@ export default function TimerModal({ visible, onClose }: Props) {
 
   const toggleTimer = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (remaining === 0) {
-      setRemaining(totalSeconds);
+    if (!started || remaining === 0) {
+      // Fresh start — lock in current drum values
+      const t = drumTotal > 0 ? drumTotal : totalSeconds;
+      setTotalSeconds(t);
+      setRemaining(t);
       setStarted(true);
       setIsRunning(true);
     } else {
-      setStarted(true);
       setIsRunning((prev) => !prev);
     }
   };
@@ -232,7 +230,7 @@ export default function TimerModal({ visible, onClose }: Props) {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  const ringProgress = totalSeconds > 0 ? remaining / totalSeconds : 1;
+  const ringProgress = activeTotal > 0 ? activeRemaining / activeTotal : 1;
   const strokeDashoffset = CIRCUMFERENCE * (1 - ringProgress);
 
   const styles = StyleSheet.create({
@@ -408,7 +406,7 @@ export default function TimerModal({ visible, onClose }: Props) {
                   />
                 </Svg>
                 <View style={styles.timerDisplay}>
-                  <Text style={styles.timerText}>{formatTime(remaining)}</Text>
+                  <Text style={styles.timerText}>{formatTime(activeRemaining)}</Text>
                   <Text style={styles.timerSub}>
                     {isRunning ? "Running" : started ? "Paused" : "Ready"}
                   </Text>
