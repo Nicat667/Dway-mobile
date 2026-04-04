@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Modal,
@@ -34,6 +34,7 @@ const CATEGORY_COLORS = [
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 
+/* ─── Main Modal ─── */
 export default function AddTaskModal({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -93,35 +94,26 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     setNewCategoryName("");
   };
 
-  const hourStr = alarmHour.toString().padStart(2, "0");
-  const minStr = alarmMinute.toString().padStart(2, "0");
-
   const s = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
     container: {
-      backgroundColor: colors.card,
-      borderTopLeftRadius: 24, borderTopRightRadius: 24,
-      paddingTop: 12,
-      paddingBottom: insets.bottom + 16,
-      maxHeight: "92%",
-      // Use flex column layout so drum section sits between header area and scrollable content
-      flexDirection: "column",
+      backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      paddingTop: 12, paddingBottom: insets.bottom + 16, maxHeight: "92%",
     },
     handle: { width: 40, height: 4, backgroundColor: colors.border, borderRadius: 2, alignSelf: "center", marginBottom: 20 },
-    header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 20 },
+    header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 24 },
     headerTitle: { fontSize: 20, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold" },
+    content: { paddingHorizontal: 20 },
     label: {
       fontSize: 12, fontWeight: "700", color: colors.mutedForeground,
       marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.8, fontFamily: "Inter_700Bold",
     },
-    titleArea: { paddingHorizontal: 20, marginBottom: 4 },
     titleInput: {
       backgroundColor: colors.muted, borderRadius: 14, paddingHorizontal: 14,
       paddingVertical: 14, fontSize: 16, color: colors.foreground,
       fontFamily: "Inter_400Regular", marginBottom: 12,
     },
-    // Alarm toggle row — lives OUTSIDE the ScrollView
-    alarmSection: { paddingHorizontal: 20 },
+    // ── iPhone-style alarm toggle row ──
     alarmToggleRow: {
       flexDirection: "row", alignItems: "center",
       backgroundColor: colors.muted, borderRadius: 14,
@@ -136,10 +128,10 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     },
     alarmToggleLabel: { fontSize: 16, color: colors.foreground, fontFamily: "Inter_500Medium" },
     alarmToggleTime: { fontSize: 14, color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
-    // Drum panel — lives OUTSIDE the ScrollView so iOS gesture recognizers can't interfere
+    // ── Alarm picker panel ──
     alarmPickerPanel: {
       backgroundColor: colors.muted,
-      borderRadius: 16, marginHorizontal: 20, marginBottom: 16,
+      borderRadius: 16, marginBottom: 20,
       overflow: "hidden",
     },
     drumRow: {
@@ -155,7 +147,6 @@ export default function AddTaskModal({ visible, onClose }: Props) {
       fontSize: 36, fontWeight: "700", color: colors.mutedForeground,
       fontFamily: "Inter_700Bold", paddingBottom: 12, paddingHorizontal: 6,
     },
-    scrollContent: { paddingHorizontal: 20 },
     // categories
     categoriesSection: { marginBottom: 20 },
     categoryRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -194,200 +185,193 @@ export default function AddTaskModal({ visible, onClose }: Props) {
     submitText: { color: "#ffffff", fontSize: 16, fontWeight: "700", fontFamily: "Inter_700Bold" },
   });
 
+  const hourStr = alarmHour.toString().padStart(2, "0");
+  const minStr = alarmMinute.toString().padStart(2, "0");
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={s.overlay}>
         <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
+          <View style={s.container}>
+            <View style={s.handle} />
+            <View style={s.header}>
+              <Text style={s.headerTitle}>New Task</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Feather name="x" size={22} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
 
-        <View style={s.container}>
-          <View style={s.handle} />
+            <ScrollView
+              style={s.content}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
 
-          {/* Header */}
-          <View style={s.header}>
-            <Text style={s.headerTitle}>New Task</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Feather name="x" size={22} color={colors.mutedForeground} />
-            </TouchableOpacity>
-          </View>
-
-          {/* ── Title input — outside ScrollView so keyboard doesn't fight scroll ── */}
-          <View style={s.titleArea}>
-            <Text style={s.label}>Task Title</Text>
-            <TextInput
-              style={s.titleInput}
-              placeholder="What do you need to do?"
-              placeholderTextColor={colors.mutedForeground}
-              value={title}
-              onChangeText={setTitle}
-              autoFocus
-            />
-          </View>
-
-          {/* ── Alarm section — entirely outside ScrollView.
-               WheelDrum inside a ScrollView on iOS causes the ScrollView's native
-               UIScrollView gesture recognizer to intercept vertical drags.
-               Keeping the drum here (outside any ScrollView) guarantees it works. ── */}
-          <View style={s.alarmSection}>
-            <View style={s.alarmToggleRow}>
-              <View style={s.alarmToggleLeft}>
-                <View style={s.alarmIconCircle}>
-                  <Feather name="bell" size={16} color="#fff" />
-                </View>
-                <View>
-                  <Text style={s.alarmToggleLabel}>Alarm Reminder</Text>
-                  {alarmEnabled && (
-                    <Text style={s.alarmToggleTime}>{hourStr}:{minStr}</Text>
-                  )}
-                </View>
-              </View>
-              <Switch
-                value={alarmEnabled}
-                onValueChange={(v) => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setAlarmEnabled(v);
-                }}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor="#fff"
+              {/* ── Title ── */}
+              <Text style={s.label}>Task Title</Text>
+              <TextInput
+                style={s.titleInput}
+                placeholder="What do you need to do?"
+                placeholderTextColor={colors.mutedForeground}
+                value={title}
+                onChangeText={setTitle}
+                autoFocus
               />
-            </View>
-          </View>
 
-          {alarmEnabled && (
-            <View style={s.alarmPickerPanel}>
-              <View style={s.drumRow}>
-                <View style={s.drumWrap}>
-                  <WheelDrum
-                    data={HOURS}
-                    value={alarmHour}
-                    onChange={setAlarmHour}
-                    formatItem={(v) => v.toString().padStart(2, "0")}
-                    primaryColor={colors.primary}
-                    foreground={colors.foreground}
-                    border={colors.border}
-                  />
-                  <Text style={s.drumLabel}>Hour</Text>
+              {/* ── Alarm toggle row (iPhone-style) ── */}
+              <View style={s.alarmToggleRow}>
+                <View style={s.alarmToggleLeft}>
+                  <View style={s.alarmIconCircle}>
+                    <Feather name="bell" size={16} color="#fff" />
+                  </View>
+                  <View>
+                    <Text style={s.alarmToggleLabel}>Alarm Reminder</Text>
+                    {alarmEnabled && (
+                      <Text style={s.alarmToggleTime}>{hourStr}:{minStr}</Text>
+                    )}
+                  </View>
                 </View>
-
-                <Text style={s.drumColon}>:</Text>
-
-                <View style={s.drumWrap}>
-                  <WheelDrum
-                    data={MINUTES}
-                    value={alarmMinute}
-                    onChange={setAlarmMinute}
-                    formatItem={(v) => v.toString().padStart(2, "0")}
-                    primaryColor={colors.primary}
-                    foreground={colors.foreground}
-                    border={colors.border}
-                  />
-                  <Text style={s.drumLabel}>Minute</Text>
-                </View>
+                <Switch
+                  value={alarmEnabled}
+                  onValueChange={(v) => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setAlarmEnabled(v);
+                  }}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor="#fff"
+                />
               </View>
-            </View>
-          )}
 
-          {/* ── Scrollable content: category, priority, notes, submit ── */}
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={s.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Category */}
-            <Text style={s.label}>Category</Text>
-            <View style={s.categoriesSection}>
-              <View style={s.categoryRow}>
-                {visibleCategories.map((cat: Category) => {
-                  const isSelected = selectedCategory === cat.id;
+              {/* ── Alarm drum picker ── */}
+              {alarmEnabled && (
+                <View style={s.alarmPickerPanel}>
+                  <View style={s.drumRow}>
+                    <View style={s.drumWrap}>
+                      <WheelDrum
+                        data={HOURS}
+                        value={alarmHour}
+                        onChange={setAlarmHour}
+                        formatItem={(v) => v.toString().padStart(2, "0")}
+                        primaryColor={colors.primary}
+                        foreground={colors.foreground}
+                        border={colors.border}
+                      />
+                      <Text style={s.drumLabel}>Hour</Text>
+                    </View>
+
+                    <Text style={s.drumColon}>:</Text>
+
+                    <View style={s.drumWrap}>
+                      <WheelDrum
+                        data={MINUTES}
+                        value={alarmMinute}
+                        onChange={setAlarmMinute}
+                        formatItem={(v) => v.toString().padStart(2, "0")}
+                        primaryColor={colors.primary}
+                        foreground={colors.foreground}
+                        border={colors.border}
+                      />
+                      <Text style={s.drumLabel}>Minute</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* ── Category ── */}
+              <Text style={s.label}>Category</Text>
+              <View style={s.categoriesSection}>
+                <View style={s.categoryRow}>
+                  {visibleCategories.map((cat: Category) => {
+                    const isSelected = selectedCategory === cat.id;
+                    return (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[
+                          s.categoryChip,
+                          { backgroundColor: isSelected ? cat.color + "20" : "transparent", borderColor: isSelected ? cat.color : colors.border },
+                        ]}
+                        onPress={() => setSelectedCategory(cat.id)}
+                      >
+                        <Feather name={cat.icon as any} size={13} color={isSelected ? cat.color : colors.mutedForeground} />
+                        <Text style={[s.categoryChipText, { color: isSelected ? cat.color : colors.mutedForeground }]}>{cat.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                  <TouchableOpacity style={s.addCatTrigger} onPress={() => setShowAddCategory(!showAddCategory)}>
+                    <Feather name="plus" size={13} color={colors.mutedForeground} />
+                    <Text style={s.addCatTriggerText}>Add</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {showAddCategory && (
+                  <View style={s.addCategorySection}>
+                    <View style={s.addCatHeader}>
+                      <Text style={s.addCatTitle}>New Category</Text>
+                      <TouchableOpacity onPress={() => setShowAddCategory(false)}>
+                        <Feather name="x" size={18} color={colors.mutedForeground} />
+                      </TouchableOpacity>
+                    </View>
+                    <TextInput
+                      style={s.addCategoryInput}
+                      placeholder="Category name"
+                      placeholderTextColor={colors.mutedForeground}
+                      value={newCategoryName}
+                      onChangeText={setNewCategoryName}
+                    />
+                    <Text style={s.colorPickerLabel}>Pick a color</Text>
+                    <View style={s.colorPicker}>
+                      {CATEGORY_COLORS.map((c) => (
+                        <TouchableOpacity
+                          key={c}
+                          style={[s.colorDot, { backgroundColor: c, borderColor: newCategoryColor === c ? colors.foreground : "transparent" }]}
+                          onPress={() => setNewCategoryColor(c)}
+                        />
+                      ))}
+                    </View>
+                    <TouchableOpacity style={s.addCatBtn} onPress={handleAddCategory}>
+                      <Text style={s.addCatBtnText}>Add Category</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
+              {/* ── Priority ── */}
+              <Text style={s.label}>Priority</Text>
+              <View style={s.priorityRow}>
+                {PRIORITY_OPTIONS.map((opt) => {
+                  const isSelected = priority === opt.value;
                   return (
                     <TouchableOpacity
-                      key={cat.id}
+                      key={opt.value}
                       style={[
-                        s.categoryChip,
-                        { backgroundColor: isSelected ? cat.color + "20" : "transparent", borderColor: isSelected ? cat.color : colors.border },
+                        s.priorityBtn,
+                        { backgroundColor: isSelected ? opt.color + "20" : "transparent", borderColor: isSelected ? opt.color : colors.border },
                       ]}
-                      onPress={() => setSelectedCategory(cat.id)}
+                      onPress={() => setPriority(opt.value)}
                     >
-                      <Feather name={cat.icon as any} size={13} color={isSelected ? cat.color : colors.mutedForeground} />
-                      <Text style={[s.categoryChipText, { color: isSelected ? cat.color : colors.mutedForeground }]}>{cat.name}</Text>
+                      <Text style={[s.priorityText, { color: isSelected ? opt.color : colors.mutedForeground }]}>{opt.label}</Text>
                     </TouchableOpacity>
                   );
                 })}
-                <TouchableOpacity style={s.addCatTrigger} onPress={() => setShowAddCategory(!showAddCategory)}>
-                  <Feather name="plus" size={13} color={colors.mutedForeground} />
-                  <Text style={s.addCatTriggerText}>Add</Text>
-                </TouchableOpacity>
               </View>
 
-              {showAddCategory && (
-                <View style={s.addCategorySection}>
-                  <View style={s.addCatHeader}>
-                    <Text style={s.addCatTitle}>New Category</Text>
-                    <TouchableOpacity onPress={() => setShowAddCategory(false)}>
-                      <Feather name="x" size={18} color={colors.mutedForeground} />
-                    </TouchableOpacity>
-                  </View>
-                  <TextInput
-                    style={s.addCategoryInput}
-                    placeholder="Category name"
-                    placeholderTextColor={colors.mutedForeground}
-                    value={newCategoryName}
-                    onChangeText={setNewCategoryName}
-                  />
-                  <Text style={s.colorPickerLabel}>Pick a color</Text>
-                  <View style={s.colorPicker}>
-                    {CATEGORY_COLORS.map((c) => (
-                      <TouchableOpacity
-                        key={c}
-                        style={[s.colorDot, { backgroundColor: c, borderColor: newCategoryColor === c ? colors.foreground : "transparent" }]}
-                        onPress={() => setNewCategoryColor(c)}
-                      />
-                    ))}
-                  </View>
-                  <TouchableOpacity style={s.addCatBtn} onPress={handleAddCategory}>
-                    <Text style={s.addCatBtnText}>Add Category</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
+              {/* ── Notes ── */}
+              <Text style={s.label}>Notes (optional)</Text>
+              <TextInput
+                style={s.notesInput}
+                placeholder="Add notes..."
+                placeholderTextColor={colors.mutedForeground}
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                numberOfLines={3}
+              />
 
-            {/* Priority */}
-            <Text style={s.label}>Priority</Text>
-            <View style={s.priorityRow}>
-              {PRIORITY_OPTIONS.map((opt) => {
-                const isSelected = priority === opt.value;
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[
-                      s.priorityBtn,
-                      { backgroundColor: isSelected ? opt.color + "20" : "transparent", borderColor: isSelected ? opt.color : colors.border },
-                    ]}
-                    onPress={() => setPriority(opt.value)}
-                  >
-                    <Text style={[s.priorityText, { color: isSelected ? opt.color : colors.mutedForeground }]}>{opt.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* Notes */}
-            <Text style={s.label}>Notes (optional)</Text>
-            <TextInput
-              style={s.notesInput}
-              placeholder="Add notes..."
-              placeholderTextColor={colors.mutedForeground}
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={3}
-            />
-
-            <TouchableOpacity style={s.submitBtn} onPress={handleSubmit}>
-              <Text style={s.submitText}>Add Task</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
+              <TouchableOpacity style={s.submitBtn} onPress={handleSubmit}>
+                <Text style={s.submitText}>Add Task</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
       </View>
     </Modal>
   );
