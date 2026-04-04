@@ -17,7 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AlarmSound, useApp } from "@/context/AppContext";
-import { LANGUAGES, ThemeMode, useTheme } from "@/context/ThemeContext";
+import { LANGUAGE_LOCALIZED_NAMES, LANGUAGES, ThemeMode, useTheme } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
 const ALARM_SOUNDS: { value: AlarmSound; label: string; description: string }[] = [
@@ -530,7 +530,7 @@ export default function ProfileScreen() {
               <Text style={{ fontSize: 22, marginRight: 12 }}>{lang.flag}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.optionLabel}>{lang.native}</Text>
-                <Text style={styles.optionDesc}>{lang.label}</Text>
+                <Text style={styles.optionDesc}>{LANGUAGE_LOCALIZED_NAMES[lang.code][language]}</Text>
               </View>
               {language === lang.code && <Feather name="check" size={18} color={colors.primary} />}
             </TouchableOpacity>
