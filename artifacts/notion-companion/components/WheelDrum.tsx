@@ -28,18 +28,19 @@ export function WheelDrum({
   const H = DRUM_ITEM_H;
   const containerH = H * DRUM_VISIBLE;
 
+  // Keep onChange ref always fresh so the PanResponder closure never goes stale
+  const onChangeRef = useRef(onChange);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+
   const initIdx = Math.max(0, data.indexOf(value));
   const offsetY = useRef(new Animated.Value(initIdx * H)).current;
   const baseOffset = useRef(initIdx * H);
   const valueRef = useRef(value);
   const [liveIdx, setLiveIdx] = useState(initIdx);
 
-  // Keep valueRef in sync
-  useEffect(() => {
-    valueRef.current = value;
-  }, [value]);
+  useEffect(() => { valueRef.current = value; }, [value]);
 
-  // Sync animation when value changes externally (e.g. preset tap)
+  // Sync when value changes externally (e.g. preset tap)
   useEffect(() => {
     const idx = Math.max(0, data.indexOf(value));
     baseOffset.current = idx * H;
@@ -65,7 +66,8 @@ export function WheelDrum({
         const raw = baseOffset.current - g.dy;
         const clamped = Math.max(0, Math.min((data.length - 1) * H, raw));
         offsetY.setValue(clamped);
-        setLiveIdx(Math.max(0, Math.min(data.length - 1, Math.round(clamped / H))));
+        const newIdx = Math.max(0, Math.min(data.length - 1, Math.round(clamped / H)));
+        setLiveIdx((prev) => (prev !== newIdx ? newIdx : prev));
       },
       onPanResponderRelease: (_, g) => {
         const raw = baseOffset.current - g.dy - g.vy * 80;
@@ -82,33 +84,39 @@ export function WheelDrum({
         if (data[snapIdx] !== undefined && data[snapIdx] !== valueRef.current) {
           valueRef.current = data[snapIdx];
           Haptics.selectionAsync().catch(() => {});
-          onChange(data[snapIdx]);
+          onChangeRef.current(data[snapIdx]);
         }
       },
     })
   ).current;
 
-  // translateY = CENTER * H - offsetY  (item[k] lands in center when offsetY = k*H)
+  // translateY: item[k] sits in center when offsetY === k * H
   const translateY = offsetY.interpolate({
-    inputRange: [0, (data.length - 1) * H],
-    outputRange: [CENTER * H, CENTER * H - (data.length - 1) * H],
+    inputRange: [0, Math.max(1, (data.length - 1) * H)],
+    outputRange: [CENTER * H, CENTER * H - Math.max(0, (data.length - 1) * H)],
     extrapolate: "clamp",
   });
 
   return (
     <View style={{ width: 72, height: containerH, overflow: "hidden" }}>
-      {/* separator lines around center row */}
+      {/* separator lines around center row — no pointer events so they never block touches */}
       <View
         style={{
-          position: "absolute", top: CENTER * H,
-          left: 8, right: 8, height: 1, backgroundColor: border, zIndex: 2,
+          position: "absolute",
+          top: CENTER * H,
+          left: 8, right: 8, height: 1,
+          backgroundColor: border,
+          zIndex: 2,
           pointerEvents: "none",
         }}
       />
       <View
         style={{
-          position: "absolute", top: (CENTER + 1) * H,
-          left: 8, right: 8, height: 1, backgroundColor: border, zIndex: 2,
+          position: "absolute",
+          top: (CENTER + 1) * H,
+          left: 8, right: 8, height: 1,
+          backgroundColor: border,
+          zIndex: 2,
           pointerEvents: "none",
         }}
       />
@@ -119,14 +127,17 @@ export function WheelDrum({
             const dist = Math.abs(idx - liveIdx);
             const isSelected = dist === 0;
             return (
-              <View key={item} style={{ height: H, alignItems: "center", justifyContent: "center" }}>
+              <View
+                key={item}
+                style={{ height: H, alignItems: "center", justifyContent: "center" }}
+              >
                 <Text
                   style={{
-                    fontSize: isSelected ? 26 : 20,
-                    fontWeight: isSelected ? "700" : "400",
+                    // Fixed font size & family — no layout recalculation on iOS during scroll
+                    fontSize: 22,
+                    fontFamily: "Inter_700Bold",
                     color: isSelected ? primaryColor : foreground,
-                    opacity: dist === 0 ? 1 : dist === 1 ? 0.4 : 0.15,
-                    fontFamily: isSelected ? "Inter_700Bold" : "Inter_400Regular",
+                    opacity: dist === 0 ? 1 : dist === 1 ? 0.38 : 0.12,
                   }}
                 >
                   {formatItem(item)}
