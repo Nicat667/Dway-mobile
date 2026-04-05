@@ -15,10 +15,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { fireTimerDone } from "@/utils/alarmService";
+import { playLoopingAlarm, stopLoopingAlarm } from "@/utils/alarmService";
 import { WheelDrum } from "@/components/WheelDrum";
 
 type Props = { visible: boolean; onClose: () => void };
+
+
 
 const QUICK_PRESETS = [
   { label: "5 min", seconds: 5 * 60 },
@@ -47,12 +49,18 @@ export default function TimerModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { profileSettings } = useApp();
 
+  // Stop alarm when modal is closed externally
+  useEffect(() => {
+    if (!visible) stopLoopingAlarm();
+  }, [visible]);
+
   const [isRunning, setIsRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
   const [totalSeconds, setTotalSeconds] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [started, setStarted] = useState(false);
   const [activePreset, setActivePreset] = useState<number | null>(null);
+  const [alarmRinging, setAlarmRinging] = useState(false);
 
   const [drumHours, setDrumHours] = useState(0);
   const [drumMinutes, setDrumMinutes] = useState(0);
@@ -81,8 +89,9 @@ export default function TimerModal({ visible, onClose }: Props) {
             setIsRunning(false);
             setStarted(false);
             setSessions((s) => s + 1);
+            setAlarmRinging(true);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            fireTimerDone(profileSettings.alarmSound);
+            playLoopingAlarm();
             return 0;
           }
           return prev - 1;
@@ -134,7 +143,13 @@ export default function TimerModal({ visible, onClose }: Props) {
     }
   };
 
+  const dismissAlarm = () => {
+    stopLoopingAlarm();
+    setAlarmRinging(false);
+  };
+
   const resetTimer = () => {
+    dismissAlarm();
     setIsRunning(false);
     setStarted(false);
     setRemaining(totalSeconds);
@@ -266,6 +281,7 @@ export default function TimerModal({ visible, onClose }: Props) {
                     primaryColor={colors.primary}
                     foreground={colors.foreground}
                     border={colors.border}
+                    circular
                   />
                   <Text style={styles.drumLabel}>Hours</Text>
                 </View>
@@ -281,6 +297,7 @@ export default function TimerModal({ visible, onClose }: Props) {
                     primaryColor={colors.primary}
                     foreground={colors.foreground}
                     border={colors.border}
+                    circular
                   />
                   <Text style={styles.drumLabel}>Minutes</Text>
                 </View>
@@ -296,6 +313,7 @@ export default function TimerModal({ visible, onClose }: Props) {
                     primaryColor={colors.primary}
                     foreground={colors.foreground}
                     border={colors.border}
+                    circular
                   />
                   <Text style={styles.drumLabel}>Seconds</Text>
                 </View>
@@ -322,11 +340,28 @@ export default function TimerModal({ visible, onClose }: Props) {
                 <View style={styles.timerDisplay}>
                   <Text style={styles.timerText}>{formatTime(activeRemaining)}</Text>
                   <Text style={styles.timerSub}>
-                    {isRunning ? "Running" : started ? "Paused" : "Ready"}
+                    {alarmRinging ? "🔔 Ringing" : isRunning ? "Running" : started ? "Paused" : "Ready"}
                   </Text>
                 </View>
               </View>
             </View>
+
+            {alarmRinging && (
+              <TouchableOpacity
+                onPress={dismissAlarm}
+                style={{
+                  backgroundColor: "#ef4444",
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700", fontFamily: "Inter_700Bold" }}>
+                  Dismiss Alarm
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.controls}>
               <TouchableOpacity style={styles.controlBtn} onPress={resetTimer}>

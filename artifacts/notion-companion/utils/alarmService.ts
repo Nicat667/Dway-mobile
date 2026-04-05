@@ -1,17 +1,50 @@
+import { Audio } from "expo-av";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
 import type { AlarmSound } from "@/context/AppContext";
 
 // ─── Foreground notification display ────────────────────────────────────────
-// Without this, iOS silently drops foreground notifications.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
 });
+
+// ─── In-app looping alarm (used when timer ends while app is open) ───────────
+let _alarmSound: Audio.Sound | null = null;
+
+export async function playLoopingAlarm(): Promise<void> {
+  try {
+    await stopLoopingAlarm();
+    await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: false });
+    const { sound } = await Audio.Sound.createAsync(
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("../assets/sounds/alarm.wav"),
+      { shouldPlay: true, isLooping: true, volume: 1.0 }
+    );
+    _alarmSound = sound;
+  } catch {
+    // Fallback: fire an immediate notification sound if audio fails
+    await Notifications.scheduleNotificationAsync({
+      content: { title: "⏰ Timer Complete!", body: "Your timer has finished!" },
+      trigger: null,
+    }).catch(() => {});
+  }
+}
+
+export async function stopLoopingAlarm(): Promise<void> {
+  try {
+    if (_alarmSound) {
+      await _alarmSound.stopAsync();
+      await _alarmSound.unloadAsync();
+      _alarmSound = null;
+    }
+  } catch {}
+}
 
 // ─── Android notification channel ───────────────────────────────────────────
 // Android 8+ requires a channel. Must be created before scheduling.
@@ -20,7 +53,6 @@ export async function setupAndroidChannel(): Promise<void> {
   await Notifications.setNotificationChannelAsync("alarms", {
     name: "Alarms & Timers",
     importance: Notifications.AndroidImportance.MAX,
-    sound: "default",
     vibrationPattern: [0, 300, 200, 300],
     enableVibrate: true,
   });
@@ -67,7 +99,6 @@ export async function scheduleTaskAlarm(
       content: {
         title: `${SOUND_ICON[alarmSound]} Alarm`,
         body: taskTitle,
-        sound: true,
         data: { taskId, type: "task_alarm" },
       },
       trigger: {
@@ -101,7 +132,6 @@ export async function fireTimerDone(alarmSound: AlarmSound): Promise<void> {
       content: {
         title: `${SOUND_ICON[alarmSound]} Timer Complete`,
         body: "Your timer has finished!",
-        sound: true,
       },
       trigger: null, // immediate
     });

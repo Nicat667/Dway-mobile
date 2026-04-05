@@ -108,12 +108,11 @@ export default function TaskCard({ task, onPress }: Props) {
   });
 
   const priorityColor = PRIORITY_COLORS[task.priority];
-  const alarmTime = task.alarmTime
-    ? new Date(task.alarmTime).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : null;
+  const alarmTime = (() => {
+    if (!task.alarmTime) return null;
+    const d = new Date(task.alarmTime);
+    return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+  })();
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>

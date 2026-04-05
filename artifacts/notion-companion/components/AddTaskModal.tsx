@@ -255,6 +255,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                         primaryColor={colors.primary}
                         foreground={colors.foreground}
                         border={colors.border}
+                        circular
                       />
                       <Text style={s.drumLabel}>Hour</Text>
                     </View>
@@ -270,6 +271,7 @@ export default function AddTaskModal({ visible, onClose }: Props) {
                         primaryColor={colors.primary}
                         foreground={colors.foreground}
                         border={colors.border}
+                        circular
                       />
                       <Text style={s.drumLabel}>Minute</Text>
                     </View>
