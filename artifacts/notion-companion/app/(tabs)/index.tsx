@@ -89,7 +89,10 @@ export default function PlanScreen() {
     header: {
       paddingHorizontal: 20,
       paddingTop: Platform.OS === "web" ? insets.top + 67 : insets.top + 16,
-      paddingBottom: 12,
+      paddingBottom: 10,
+    },
+    fixedTop: {
+      backgroundColor: colors.background,
     },
     headerTop: {
       flexDirection: "row",
@@ -140,33 +143,40 @@ export default function PlanScreen() {
     quoteCard: {
       marginHorizontal: 20,
       marginBottom: 16,
-      backgroundColor: colors.primary + "14",
-      borderRadius: 16,
-      padding: 16,
-      borderLeftWidth: 3,
-      borderLeftColor: colors.primary,
+      backgroundColor: colors.primary + "0f",
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.primary + "30",
+      padding: 14,
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 12,
     },
-    quoteLabel: {
-      fontSize: 10,
-      fontWeight: "700",
-      color: colors.primary,
-      fontFamily: "Inter_700Bold",
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      marginBottom: 6,
+    quoteIconWrap: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      backgroundColor: colors.primary + "20",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+    },
+    quoteBody: {
+      flex: 1,
     },
     quoteText: {
-      fontSize: 14,
+      fontSize: 13,
       color: colors.foreground,
       fontFamily: "Inter_400Regular",
-      lineHeight: 21,
+      lineHeight: 20,
       fontStyle: "italic",
     },
     quoteAuthor: {
-      fontSize: 12,
-      color: colors.mutedForeground,
+      fontSize: 11,
+      color: colors.primary,
       fontFamily: "Inter_500Medium",
-      marginTop: 6,
+      marginTop: 4,
+      opacity: 0.8,
     },
     categoriesRow: { paddingHorizontal: 20, marginBottom: 16 },
     categoryChip: {
@@ -308,81 +318,6 @@ export default function PlanScreen() {
 
   const renderListHeader = () => (
     <>
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.periodBtn}
-            onPress={() => setShowPeriodPicker(!showPeriodPicker)}
-          >
-            <Text style={styles.periodLabel}>{PERIOD_LABELS[selectedPeriod]}</Text>
-            <Feather name="chevron-down" size={20} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.statsText}>
-          <Text style={styles.statsHighlight}>{completedCount}</Text>
-          {` ${t("of")} `}
-          <Text style={styles.statsHighlight}>{totalCount}</Text>
-          {` ${t("tasksCompleted")}`}
-        </Text>
-      </View>
-
-      {showPeriodPicker && (
-        <View style={styles.periodModal}>
-          {(Object.keys(PERIOD_ICONS) as PeriodOption[]).map((period) => (
-            <TouchableOpacity
-              key={period}
-              style={[
-                styles.periodOption,
-                {
-                  backgroundColor:
-                    selectedPeriod === period
-                      ? colors.primary + "18"
-                      : "transparent",
-                },
-              ]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setSelectedPeriod(period);
-                setShowPeriodPicker(false);
-              }}
-            >
-              <Feather
-                name={PERIOD_ICONS[period] as any}
-                size={16}
-                color={
-                  selectedPeriod === period
-                    ? colors.primary
-                    : colors.mutedForeground
-                }
-              />
-              <Text
-                style={[
-                  styles.periodOptionText,
-                  {
-                    color:
-                      selectedPeriod === period
-                        ? colors.primary
-                        : colors.foreground,
-                    fontWeight: selectedPeriod === period ? "700" : "500",
-                  },
-                ]}
-              >
-                {PERIOD_LABELS[period]}
-              </Text>
-              {selectedPeriod === period && (
-                <Feather name="check" size={14} color={colors.primary} />
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      <View style={styles.quoteCard}>
-        <Text style={styles.quoteLabel}>{t("dailyMotivation")}</Text>
-        <Text style={styles.quoteText}>"{dailyQuote.quote}"</Text>
-        <Text style={styles.quoteAuthor}>— {dailyQuote.author}</Text>
-      </View>
-
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -459,6 +394,75 @@ export default function PlanScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.fixedTop}>
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <TouchableOpacity
+              style={styles.periodBtn}
+              onPress={() => setShowPeriodPicker(!showPeriodPicker)}
+            >
+              <Text style={styles.periodLabel}>{PERIOD_LABELS[selectedPeriod]}</Text>
+              <Feather name="chevron-down" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.statsText}>
+            <Text style={styles.statsHighlight}>{completedCount}</Text>
+            {` ${t("of")} `}
+            <Text style={styles.statsHighlight}>{totalCount}</Text>
+            {` ${t("tasksCompleted")}`}
+          </Text>
+        </View>
+
+        {showPeriodPicker && (
+          <View style={styles.periodModal}>
+            {(Object.keys(PERIOD_ICONS) as PeriodOption[]).map((period) => (
+              <TouchableOpacity
+                key={period}
+                style={[
+                  styles.periodOption,
+                  { backgroundColor: selectedPeriod === period ? colors.primary + "18" : "transparent" },
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSelectedPeriod(period);
+                  setShowPeriodPicker(false);
+                }}
+              >
+                <Feather
+                  name={PERIOD_ICONS[period] as any}
+                  size={16}
+                  color={selectedPeriod === period ? colors.primary : colors.mutedForeground}
+                />
+                <Text
+                  style={[
+                    styles.periodOptionText,
+                    {
+                      color: selectedPeriod === period ? colors.primary : colors.foreground,
+                      fontWeight: selectedPeriod === period ? "700" : "500",
+                    },
+                  ]}
+                >
+                  {PERIOD_LABELS[period]}
+                </Text>
+                {selectedPeriod === period && (
+                  <Feather name="check" size={14} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.quoteCard}>
+          <View style={styles.quoteIconWrap}>
+            <Feather name="zap" size={17} color={colors.primary} />
+          </View>
+          <View style={styles.quoteBody}>
+            <Text style={styles.quoteText}>"{dailyQuote.quote}"</Text>
+            <Text style={styles.quoteAuthor}>— {dailyQuote.author}</Text>
+          </View>
+        </View>
+      </View>
+
       <FlatList
         data={pendingTasks}
         keyExtractor={(item) => item.id}

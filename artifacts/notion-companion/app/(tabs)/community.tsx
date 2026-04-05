@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
+import { CHALLENGES } from "@/constants/challenges";
 
 type Comment = { id: string; user: string; text: string; time: string; avatarColor: string };
 type Post = {
@@ -78,24 +79,6 @@ const INITIAL_POSTS: Post[] = [
   },
 ];
 
-const CHALLENGES = [
-  {
-    id: "c1", title: "7-Day Streak", description: "Complete at least one task every day for 7 days",
-    participants: 1243, icon: "zap", color: "#f59e0b", progress: 4, total: 7,
-  },
-  {
-    id: "c2", title: "100 Tasks Club", description: "Complete 100 tasks this month",
-    participants: 892, icon: "award", color: "#6366f1", progress: 67, total: 100,
-  },
-  {
-    id: "c3", title: "Category Master", description: "Complete tasks in all 5 categories in one week",
-    participants: 456, icon: "grid", color: "#22c55e", progress: 3, total: 5,
-  },
-  {
-    id: "c4", title: "Early Bird", description: "Complete a task before 9am every day for 5 days",
-    participants: 728, icon: "sun", color: "#f97316", progress: 2, total: 5,
-  },
-];
 
 const POST_CATEGORIES = [
   { label: "Work", color: "#6366f1" },
@@ -248,6 +231,12 @@ export default function CommunityScreen() {
     participantsText: { fontSize: 12, color: colors.mutedForeground, fontFamily: "Inter_400Regular", flex: 1, marginLeft: 4 },
     joinBtn: { paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5 },
     joinBtnText: { fontSize: 13, fontWeight: "700", fontFamily: "Inter_700Bold" },
+    pointsBadge: {
+      flexDirection: "row", alignItems: "center", gap: 3,
+      paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
+      marginLeft: 8, alignSelf: "flex-start",
+    },
+    pointsBadgeText: { fontSize: 11, fontWeight: "700", fontFamily: "Inter_700Bold" },
     // Comment full-screen
     commentScreen: { flex: 1, backgroundColor: colors.background },
     commentScreenHeader: {
@@ -421,13 +410,40 @@ export default function CommunityScreen() {
                     <Feather name={challenge.icon as any} size={20} color={challenge.color} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.challengeTitle}>{challenge.title}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: 2 }}>
+                      <Text style={styles.challengeTitle}>{challenge.title}</Text>
+                      <View style={[styles.pointsBadge, { backgroundColor: challenge.color + "20" }]}>
+                        <Feather name="star" size={10} color={challenge.color} />
+                        <Text style={[styles.pointsBadgeText, { color: challenge.color }]}>
+                          {challenge.points} pts
+                        </Text>
+                      </View>
+                    </View>
                     <Text style={styles.challengeDesc}>{challenge.description}</Text>
                   </View>
                 </View>
-                <View style={styles.progressBg}>
-                  <View style={[styles.progressFill, { width: `${(challenge.progress / challenge.total) * 100}%`, backgroundColor: challenge.color }]} />
-                </View>
+                {joinedChallenges.has(challenge.id) ? (
+                  <>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
+                      <Text style={{ fontSize: 12, color: colors.mutedForeground, fontFamily: "Inter_400Regular" }}>
+                        Your progress
+                      </Text>
+                      <Text style={{ fontSize: 12, fontWeight: "600", color: challenge.color, fontFamily: "Inter_600SemiBold" }}>
+                        {challenge.progress} / {challenge.total}
+                      </Text>
+                    </View>
+                    <View style={styles.progressBg}>
+                      <View style={[styles.progressFill, { width: `${(challenge.progress / challenge.total) * 100}%`, backgroundColor: challenge.color }]} />
+                    </View>
+                  </>
+                ) : (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                    <Feather name="flag" size={12} color={colors.mutedForeground} />
+                    <Text style={{ fontSize: 12, color: colors.mutedForeground, fontFamily: "Inter_400Regular" }}>
+                      Goal: {challenge.total} {challenge.total === 1 ? "time" : "times"}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.challengeFooter}>
                   <Feather name="users" size={13} color={colors.mutedForeground} />
                   <Text style={styles.participantsText}>{challenge.participants.toLocaleString()} {t("participants")}</Text>

@@ -287,8 +287,21 @@ export default function ProgressScreen() {
     },
     circlesRow: {
       flexDirection: "row",
-      justifyContent: "space-around",
-      marginTop: 20,
+      marginHorizontal: 20,
+      marginBottom: 20,
+      gap: 10,
+    },
+    circleCard: {
+      flex: 1,
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      paddingVertical: 16,
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.06,
+      shadowRadius: 6,
+      elevation: 2,
     },
   });
 
@@ -375,14 +388,16 @@ export default function ProgressScreen() {
           </View>
         </View>
 
-        {activeCategoryStats.length > 0 && (
-          <View style={styles.circlesRow}>
-            {activeCategoryStats.slice(0, 3).map((catStat) => {
-              const cat = categories.find((c) => c.id === catStat.categoryId);
-              if (!cat) return null;
-              return (
+      </View>
+
+      {activeCategoryStats.length > 0 && (
+        <View style={styles.circlesRow}>
+          {activeCategoryStats.slice(0, 3).map((catStat) => {
+            const cat = categories.find((c) => c.id === catStat.categoryId);
+            if (!cat) return null;
+            return (
+              <View key={catStat.categoryId} style={styles.circleCard}>
                 <ProgressCircle
-                  key={catStat.categoryId}
                   percentage={catStat.percentage}
                   size={72}
                   strokeWidth={7}
@@ -390,11 +405,11 @@ export default function ProgressScreen() {
                   label={cat.name}
                   sublabel={`${catStat.completed}/${catStat.total}`}
                 />
-              );
-            })}
-          </View>
-        )}
-      </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
 
       {activeCategoryStats.length > 0 ? (
         <View style={styles.categoriesSection}>

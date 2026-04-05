@@ -33,7 +33,7 @@ export type Task = {
   notes?: string;
 };
 
-export type AlarmSound = "default" | "gentle" | "beep" | "bell";
+export type AlarmSound = "classic" | "gentle" | "digital" | "bell";
 
 export type ProfileSettings = {
   name: string;
@@ -138,7 +138,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [profileSettings, setProfileSettings] = useState<ProfileSettings>({
     name: "Alex",
-    alarmSound: "default",
+    alarmSound: "classic",
     notificationsEnabled: true,
   });
   const [joinedChallenges, setJoinedChallenges] = useState<Set<string>>(new Set());

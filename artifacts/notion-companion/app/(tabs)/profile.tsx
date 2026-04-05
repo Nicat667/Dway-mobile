@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
   Switch,
   Text,
   TextInput,
@@ -19,23 +20,24 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AlarmSound, useApp } from "@/context/AppContext";
 import { LANGUAGE_LOCALIZED_NAMES, LANGUAGES, ThemeMode, useTheme } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
+import { CHALLENGES } from "@/constants/challenges";
 
 const ALARM_SOUNDS: { value: AlarmSound; label: string; description: string }[] = [
-  { value: "default", label: "Default", description: "Standard alarm sound" },
-  { value: "gentle", label: "Gentle", description: "Soft, gradual chime" },
-  { value: "beep", label: "Beep", description: "Classic beep tone" },
-  { value: "bell", label: "Bell", description: "Clear bell ring" },
+  { value: "classic", label: "Classic", description: "Traditional double-beep alarm" },
+  { value: "gentle", label: "Gentle", description: "Soft ascending chime" },
+  { value: "digital", label: "Digital", description: "Modern fast-pulse alarm" },
+  { value: "bell", label: "Bell", description: "Church bell with natural decay" },
 ];
 
 const THEME_OPTIONS: { value: ThemeMode; label: string; icon: string }[] = [
   { value: "light", label: "Light", icon: "sun" },
   { value: "dark", label: "Dark", icon: "moon" },
-  { value: "system", label: "System", icon: "smartphone" },
 ];
 
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const { tasks, profileSettings, updateProfileSettings, joinedChallenges } = useApp();
   const { themeMode, language, setThemeMode, setLanguage, t } = useTheme();
 
@@ -44,16 +46,28 @@ export default function ProfileScreen() {
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(profileSettings.name);
+  const [showAllChallenges, setShowAllChallenges] = useState(false);
+  const [showAllAchievements, setShowAllAchievements] = useState(false);
+  const [showAllPartners, setShowAllPartners] = useState(false);
 
   const completedTasks = tasks.filter((t) => t.completed).length;
   const totalTasks = tasks.length;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  const weekTasks = tasks.filter((t) => {
-    const d = new Date(t.createdAt);
-    const week = new Date(); week.setDate(week.getDate() - 7);
-    return d >= week;
-  });
-  const streakDays = Math.min(7, weekTasks.filter((t) => t.completed).length);
+  const totalPoints = CHALLENGES.filter((c) => joinedChallenges.has(c.id)).reduce((sum, c) => sum + c.points, 0);
+
+  // 3-column grid: screenWidth - 40px (section margins) - 20px (2 gaps)
+  const achCardWidth = Math.floor((screenWidth - 40 - 20) / 3);
+
+  const ACHIEVEMENTS = [
+    { title: "First Task",       icon: "check-circle", color: "#f59e0b", unlocked: completedTasks >= 1 },
+    { title: "Getting Started",  icon: "trending-up",  color: "#3b82f6", unlocked: completedTasks >= 5 },
+    { title: "On Fire",          icon: "award",        color: "#22c55e", unlocked: completedTasks >= 10 },
+    { title: "Halfway Hero",     icon: "star",         color: "#6366f1", unlocked: completedTasks >= 25 },
+    { title: "Century",          icon: "zap",          color: "#ec4899", unlocked: completedTasks >= 50 },
+    { title: "Task Master",      icon: "target",       color: "#f97316", unlocked: completedTasks >= 100 },
+    { title: "Challenger",       icon: "flag",         color: "#06b6d4", unlocked: joinedChallenges.size >= 1 },
+    { title: "Team Player",      icon: "shield",       color: "#8b5cf6", unlocked: joinedChallenges.size >= CHALLENGES.length },
+  ] as const;
 
   const handleSaveName = () => {
     if (nameInput.trim()) updateProfileSettings({ name: nameInput.trim() });
@@ -109,9 +123,9 @@ export default function ProfileScreen() {
     settingIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", marginRight: 12 },
     settingLabel: { flex: 1, fontSize: 15, color: colors.foreground, fontFamily: "Inter_500Medium" },
     settingValue: { fontSize: 14, color: colors.mutedForeground, fontFamily: "Inter_400Regular" },
-    achievementRow: { flexDirection: "row", gap: 10 },
+    achievementRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
     achievementCard: {
-      flex: 1, backgroundColor: colors.card, borderRadius: 14, padding: 14, alignItems: "center",
+      width: achCardWidth, backgroundColor: colors.card, borderRadius: 14, padding: 14, alignItems: "center",
       shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
     },
     achievementIcon: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", marginBottom: 8 },
@@ -193,47 +207,66 @@ export default function ProfileScreen() {
             <Text style={[styles.statValue, { color: colors.primary }]}>{completedTasks}</Text>
             <Text style={styles.statLabel}>{t("tasksDone")}</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: "#f59e0b" }]}>{streakDays}</Text>
-            <Text style={styles.statLabel}>{t("dayStreak")}</Text>
-          </View>
+
           <View style={styles.statCard}>
             <Text style={[styles.statValue, { color: "#22c55e" }]}>{completionRate}%</Text>
             <Text style={styles.statLabel}>{t("completion")}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+              <Feather name="star" size={14} color="#f97316" />
+              <Text style={[styles.statValue, { color: "#f97316" }]}>{totalPoints}</Text>
+            </View>
+            <Text style={styles.statLabel}>Points</Text>
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t("achievements")}</Text>
-          <View style={styles.achievementRow}>
-            {/* First Task */}
-            <View style={styles.achievementCard}>
-              <View style={[styles.achievementIcon, { backgroundColor: completedTasks >= 1 ? "#f59e0b20" : colors.muted }]}>
-                <Feather name={completedTasks >= 1 ? "zap" : "lock"} size={20} color={completedTasks >= 1 ? "#f59e0b" : colors.mutedForeground} />
-              </View>
-              <Text style={[styles.achievementTitle, { color: completedTasks >= 1 ? colors.foreground : colors.mutedForeground }]}>
-                First Task
-              </Text>
-            </View>
-            {/* 10 Done */}
-            <View style={styles.achievementCard}>
-              <View style={[styles.achievementIcon, { backgroundColor: completedTasks >= 10 ? "#22c55e20" : colors.muted }]}>
-                <Feather name={completedTasks >= 10 ? "award" : "lock"} size={20} color={completedTasks >= 10 ? "#22c55e" : colors.mutedForeground} />
-              </View>
-              <Text style={[styles.achievementTitle, { color: completedTasks >= 10 ? colors.foreground : colors.mutedForeground }]}>
-                10 Done
-              </Text>
-            </View>
-            {/* 20 Club */}
-            <View style={styles.achievementCard}>
-              <View style={[styles.achievementIcon, { backgroundColor: completedTasks >= 20 ? "#6366f120" : colors.muted }]}>
-                <Feather name={completedTasks >= 20 ? "star" : "lock"} size={20} color={completedTasks >= 20 ? "#6366f1" : colors.mutedForeground} />
-              </View>
-              <Text style={[styles.achievementTitle, { color: completedTasks >= 20 ? colors.foreground : colors.mutedForeground }]}>
-                20 Club
-              </Text>
-            </View>
-          </View>
+          {(() => {
+            const ACH_LIMIT = 6;
+            const unlocked = ACHIEVEMENTS.filter((a) => a.unlocked);
+            const visible = showAllAchievements ? unlocked : unlocked.slice(0, ACH_LIMIT);
+            const hasMore = unlocked.length > ACH_LIMIT;
+            if (unlocked.length === 0) {
+              return (
+                <View style={{ alignItems: "center", paddingVertical: 24 }}>
+                  <Feather name="award" size={28} color={colors.mutedForeground} style={{ marginBottom: 8 }} />
+                  <Text style={{ fontSize: 14, color: colors.mutedForeground, fontFamily: "Inter_400Regular", textAlign: "center" }}>
+                    Complete tasks and join challenges to earn achievements
+                  </Text>
+                </View>
+              );
+            }
+            return (
+              <>
+                <View style={styles.achievementRow}>
+                  {visible.map((a) => (
+                    <View key={a.title} style={styles.achievementCard}>
+                      <View style={[styles.achievementIcon, { backgroundColor: a.color + "20" }]}>
+                        <Feather name={a.icon as any} size={20} color={a.color} />
+                      </View>
+                      <Text style={styles.achievementTitle}>{a.title}</Text>
+                    </View>
+                  ))}
+                </View>
+                {hasMore && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setShowAllAchievements((v) => !v);
+                    }}
+                    style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingTop: 12 }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary, fontFamily: "Inter_600SemiBold" }}>
+                      {showAllAchievements ? "Show less" : `Show ${unlocked.length - ACH_LIMIT} more`}
+                    </Text>
+                    <Feather name={showAllAchievements ? "chevron-up" : "chevron-down"} size={14} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
+              </>
+            );
+          })()}
         </View>
 
         <View style={styles.section}>
@@ -246,32 +279,48 @@ export default function ProfileScreen() {
                   {t("noChallenges")}
                 </Text>
               </View>
-            ) : (
-              [
-                { id: "c1", title: "7-Day Streak", icon: "zap", color: "#f59e0b" },
-                { id: "c2", title: "100 Tasks Club", icon: "award", color: "#6366f1" },
-                { id: "c3", title: "Category Master", icon: "grid", color: "#22c55e" },
-                { id: "c4", title: "Early Bird", icon: "sun", color: "#f97316" },
-              ]
-                .filter((c) => joinedChallenges.has(c.id))
-                .map((c, i, arr) => (
-                  <View
-                    key={c.id}
-                    style={[
-                      { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 },
-                      i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
-                    ]}
-                  >
-                    <View style={[styles.settingIcon, { backgroundColor: c.color + "20" }]}>
-                      <Feather name={c.icon as any} size={18} color={c.color} />
+            ) : (() => {
+              const joined = CHALLENGES.filter((c) => joinedChallenges.has(c.id));
+              const LIMIT = 3;
+              const visible = showAllChallenges ? joined : joined.slice(0, LIMIT);
+              const hasMore = joined.length > LIMIT;
+              return (
+                <>
+                  {visible.map((c, i) => (
+                    <View
+                      key={c.id}
+                      style={[
+                        { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 },
+                        (i < visible.length - 1 || hasMore) && { borderBottomWidth: 1, borderBottomColor: colors.border },
+                      ]}
+                    >
+                      <View style={[styles.settingIcon, { backgroundColor: c.color + "20" }]}>
+                        <Feather name={c.icon as any} size={18} color={c.color} />
+                      </View>
+                      <Text style={styles.settingLabel}>{c.title}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: c.color + "20" }}>
+                        <Feather name="star" size={10} color={c.color} />
+                        <Text style={{ fontSize: 11, fontWeight: "700", color: c.color, fontFamily: "Inter_700Bold" }}>{c.points} pts</Text>
+                      </View>
                     </View>
-                    <Text style={styles.settingLabel}>{c.title}</Text>
-                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: c.color + "20" }}>
-                      <Text style={{ fontSize: 11, fontWeight: "700", color: c.color, fontFamily: "Inter_700Bold" }}>Joined</Text>
-                    </View>
-                  </View>
-                ))
-            )}
+                  ))}
+                  {hasMore && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setShowAllChallenges((v) => !v);
+                      }}
+                      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12 }}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary, fontFamily: "Inter_600SemiBold" }}>
+                        {showAllChallenges ? "Show less" : `Show ${joined.length - LIMIT} more`}
+                      </Text>
+                      <Feather name={showAllChallenges ? "chevron-up" : "chevron-down"} size={14} color={colors.primary} />
+                    </TouchableOpacity>
+                  )}
+                </>
+              );
+            })()}
           </View>
         </View>
 
@@ -309,7 +358,7 @@ export default function ProfileScreen() {
           <View style={styles.settingCard}>
             <TouchableOpacity style={styles.settingRow} onPress={() => setShowThemePicker(true)}>
               <View style={[styles.settingIcon, { backgroundColor: "#06b6d420" }]}>
-                <Feather name={themeMode === "dark" ? "moon" : themeMode === "light" ? "sun" : "smartphone"} size={18} color="#06b6d4" />
+                <Feather name={themeMode === "dark" ? "moon" : "sun"} size={18} color="#06b6d4" />
               </View>
               <Text style={styles.settingLabel}>{t("theme")}</Text>
               <Text style={styles.settingValue}>{currentThemeLabel}</Text>
@@ -329,107 +378,78 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t("partners")}</Text>
           <Text style={{ fontSize: 13, color: colors.mutedForeground, fontFamily: "Inter_400Regular", marginBottom: 12 }}>
-            Exclusive perks from our partners — just for using Notion Companion.
+            Exclusive perks from our partners — just for using Dway.
           </Text>
-          {[
-            {
-              id: "p1",
-              name: "Headspace",
-              tagline: "Mindfulness & Focus",
-              desc: "3 months of Headspace Plus free when you complete your first 30 tasks.",
-              color: "#f97316",
-              icon: "sun",
-              badge: "3 Months Free",
-            },
-            {
-              id: "p2",
-              name: "Notion",
-              tagline: "All-in-one workspace",
-              desc: "Get 6 months of Notion Plus plan free and sync your tasks directly.",
-              color: "#6366f1",
-              icon: "book",
-              badge: "6 Months Free",
-            },
-            {
-              id: "p3",
-              name: "Calm",
-              tagline: "Sleep & Relaxation",
-              desc: "Unlock 1-year Calm Premium access when you maintain a 7-day streak.",
-              color: "#3b82f6",
-              icon: "moon",
-              badge: "1 Year Access",
-            },
-            {
-              id: "p4",
-              name: "Spotify",
-              tagline: "Music & Podcasts",
-              desc: "2 months of Spotify Premium for free to keep you focused while you work.",
-              color: "#22c55e",
-              icon: "music",
-              badge: "2 Months Free",
-            },
-            {
-              id: "p5",
-              name: "Coursera",
-              tagline: "Online Learning",
-              desc: "30% off any Coursera course or specialization for active members.",
-              color: "#06b6d4",
-              icon: "award",
-              badge: "30% Off",
-            },
-          ].map((partner, i, arr) => (
-            <View
-              key={partner.id}
-              style={[
-                styles.settingCard,
-                { marginBottom: i < arr.length - 1 ? 10 : 0, overflow: "hidden" },
-              ]}
-            >
-              <View style={{ flexDirection: "row", alignItems: "flex-start", padding: 16, gap: 12 }}>
-                <View
-                  style={[
-                    styles.settingIcon,
-                    { backgroundColor: partner.color + "20", width: 46, height: 46, borderRadius: 14 },
-                  ]}
-                >
-                  <Feather name={partner.icon as any} size={20} color={partner.color} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                    <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold" }}>
-                      {partner.name}
-                    </Text>
-                    <View style={{ backgroundColor: partner.color + "18", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
-                      <Text style={{ fontSize: 10, fontWeight: "700", color: partner.color, fontFamily: "Inter_700Bold" }}>
-                        {partner.badge}
-                      </Text>
+          {(() => {
+            const PARTNERS = [
+              { id: "p1", name: "Headspace", tagline: "Mindfulness & Focus", desc: "3 months of Headspace Plus free when you complete your first 30 tasks.", color: "#f97316", icon: "sun", badge: "3 Months Free" },
+              { id: "p2", name: "Notion", tagline: "All-in-one workspace", desc: "Get 6 months of Notion Plus plan free and sync your tasks directly.", color: "#6366f1", icon: "book", badge: "6 Months Free" },
+              { id: "p3", name: "Calm", tagline: "Sleep & Relaxation", desc: "Unlock 1-year Calm Premium access when you maintain a 7-day streak.", color: "#3b82f6", icon: "moon", badge: "1 Year Access" },
+              { id: "p4", name: "Spotify", tagline: "Music & Podcasts", desc: "2 months of Spotify Premium for free to keep you focused while you work.", color: "#22c55e", icon: "music", badge: "2 Months Free" },
+              { id: "p5", name: "Coursera", tagline: "Online Learning", desc: "30% off any Coursera course or specialization for active members.", color: "#06b6d4", icon: "award", badge: "30% Off" },
+            ];
+            const LIMIT = 2;
+            const visible = showAllPartners ? PARTNERS : PARTNERS.slice(0, LIMIT);
+            const hasMore = PARTNERS.length > LIMIT;
+            return (
+              <>
+                {visible.map((partner, i) => (
+                  <View
+                    key={partner.id}
+                    style={[styles.settingCard, { marginBottom: 10, overflow: "hidden" }]}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", padding: 14, gap: 12 }}>
+                      <View style={[styles.settingIcon, { backgroundColor: partner.color + "20", width: 44, height: 44, borderRadius: 12 }]}>
+                        <Feather name={partner.icon as any} size={20} color={partner.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                          <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, fontFamily: "Inter_700Bold" }}>
+                            {partner.name}
+                          </Text>
+                          <View style={{ backgroundColor: partner.color + "18", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
+                            <Text style={{ fontSize: 10, fontWeight: "700", color: partner.color, fontFamily: "Inter_700Bold" }}>
+                              {partner.badge}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={{ fontSize: 12, color: colors.mutedForeground, fontFamily: "Inter_400Regular" }}>
+                          {partner.tagline}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() =>
+                          Alert.alert(partner.name, `${partner.desc}\n\nTap View Offer to visit the partner portal.`, [
+                            { text: "Cancel", style: "cancel" },
+                            { text: "View Offer", style: "default" },
+                          ])
+                        }
+                        style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: partner.color + "18" }}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: "700", color: partner.color, fontFamily: "Inter_700Bold" }}>
+                          Claim
+                        </Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
-                  <Text style={{ fontSize: 11, color: partner.color, fontFamily: "Inter_500Medium", marginBottom: 6 }}>
-                    {partner.tagline}
-                  </Text>
-                  <Text style={{ fontSize: 13, color: colors.mutedForeground, fontFamily: "Inter_400Regular", lineHeight: 18 }}>
-                    {partner.desc}
-                  </Text>
-                </View>
-              </View>
-              <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginHorizontal: 16 }} />
-              <TouchableOpacity
-                style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12 }}
-                onPress={() =>
-                  Alert.alert(partner.name, `Your exclusive offer: ${partner.desc}\n\nTap OK to visit the partner portal.`, [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "View Offer", style: "default" },
-                  ])
-                }
-              >
-                <Feather name="external-link" size={14} color={partner.color} />
-                <Text style={{ fontSize: 13, fontWeight: "700", color: partner.color, fontFamily: "Inter_700Bold" }}>
-                  View Offer
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+                ))}
+                {hasMore && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setShowAllPartners((v) => !v);
+                    }}
+                    style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 4 }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary, fontFamily: "Inter_600SemiBold" }}>
+                      {showAllPartners ? "Show less" : `Show ${PARTNERS.length - LIMIT} more partners`}
+                    </Text>
+                    <Feather name={showAllPartners ? "chevron-up" : "chevron-down"} size={14} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
+              </>
+            );
+          })()}
         </View>
 
         <View style={styles.section}>

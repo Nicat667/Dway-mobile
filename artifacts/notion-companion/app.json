@@ -41,7 +41,13 @@
         {
           "icon": "./assets/images/icon.png",
           "color": "#0f172a",
-          "defaultChannel": "alarms"
+          "defaultChannel": "alarms",
+          "sounds": [
+            "./assets/sounds/alarm_classic.wav",
+            "./assets/sounds/alarm_gentle.wav",
+            "./assets/sounds/alarm_digital.wav",
+            "./assets/sounds/alarm_bell.wav"
+          ]
         }
       ]
     ],

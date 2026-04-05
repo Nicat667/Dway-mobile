@@ -14,16 +14,35 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// ─── Sound file map ──────────────────────────────────────────────────────────
+const SOUND_FILES: Record<AlarmSound, ReturnType<typeof require>> = {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  classic: require("../assets/sounds/alarm_classic.wav"),
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  gentle: require("../assets/sounds/alarm_gentle.wav"),
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  digital: require("../assets/sounds/alarm_digital.wav"),
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  bell: require("../assets/sounds/alarm_bell.wav"),
+};
+
+// Notification sound filenames (must match files registered in app.json)
+const NOTIFICATION_SOUNDS: Record<AlarmSound, string> = {
+  classic: "alarm_classic.wav",
+  gentle: "alarm_gentle.wav",
+  digital: "alarm_digital.wav",
+  bell: "alarm_bell.wav",
+};
+
 // ─── In-app looping alarm (used when timer ends while app is open) ───────────
 let _alarmSound: Audio.Sound | null = null;
 
-export async function playLoopingAlarm(): Promise<void> {
+export async function playLoopingAlarm(alarmSound: AlarmSound = "classic"): Promise<void> {
   try {
     await stopLoopingAlarm();
     await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: false });
     const { sound } = await Audio.Sound.createAsync(
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require("../assets/sounds/alarm.wav"),
+      SOUND_FILES[alarmSound],
       { shouldPlay: true, isLooping: true, volume: 1.0 }
     );
     _alarmSound = sound;
@@ -47,7 +66,8 @@ export async function stopLoopingAlarm(): Promise<void> {
 }
 
 // ─── Android notification channel ───────────────────────────────────────────
-// Android 8+ requires a channel. Must be created before scheduling.
+// Uses ALARM audio usage so the notification respects the device's alarm
+// volume and sounds like a real alarm rather than a notification.
 export async function setupAndroidChannel(): Promise<void> {
   if (Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync("alarms", {
@@ -55,6 +75,11 @@ export async function setupAndroidChannel(): Promise<void> {
     importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 300, 200, 300],
     enableVibrate: true,
+    audioAttributes: {
+      usage: Notifications.AndroidAudioUsage.ALARM,
+      contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+      flags: { enforceAudibility: true, requestHardwareAV: false },
+    },
   });
 }
 
@@ -73,15 +98,13 @@ export async function requestPermissions(): Promise<boolean> {
 
 // ─── Emoji prefix per sound type (visual distinction in notification) ────────
 const SOUND_ICON: Record<AlarmSound, string> = {
-  default: "⏰",
+  classic: "⏰",
   gentle: "🔔",
-  beep: "📳",
+  digital: "📳",
   bell: "🛎️",
 };
 
 // ─── Schedule a task alarm notification ─────────────────────────────────────
-// Returns the notification ID (store it on the task to cancel later).
-// Returns null if permissions denied or time is already past.
 export async function scheduleTaskAlarm(
   taskId: string,
   taskTitle: string,
@@ -93,12 +116,13 @@ export async function scheduleTaskAlarm(
     if (!granted) return null;
 
     const date = new Date(alarmTime);
-    if (date <= new Date()) return null; // past time — don't schedule
+    if (date <= new Date()) return null;
 
     const notifId = await Notifications.scheduleNotificationAsync({
       content: {
         title: `${SOUND_ICON[alarmSound]} Alarm`,
         body: taskTitle,
+        sound: NOTIFICATION_SOUNDS[alarmSound],
         data: { taskId, type: "task_alarm" },
       },
       trigger: {
@@ -121,8 +145,6 @@ export async function cancelAlarm(notificationId: string): Promise<void> {
 }
 
 // ─── Fire an immediate "timer done" notification ─────────────────────────────
-// Used when the countdown timer reaches zero.
-// trigger: null means "fire right now" — the OS plays the sound.
 export async function fireTimerDone(alarmSound: AlarmSound): Promise<void> {
   try {
     const granted = await requestPermissions();
@@ -132,8 +154,9 @@ export async function fireTimerDone(alarmSound: AlarmSound): Promise<void> {
       content: {
         title: `${SOUND_ICON[alarmSound]} Timer Complete`,
         body: "Your timer has finished!",
+        sound: NOTIFICATION_SOUNDS[alarmSound],
       },
-      trigger: null, // immediate
+      trigger: null,
     });
   } catch {}
 }

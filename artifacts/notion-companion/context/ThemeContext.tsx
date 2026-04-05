@@ -1,8 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { useColorScheme } from "react-native";
 
-export type ThemeMode = "system" | "light" | "dark";
+export type ThemeMode = "light" | "dark";
 export type Language =
   | "en" | "ru" | "tr" | "az"
   | "uz" | "kk" | "ky" | "tg" | "tk";
@@ -307,8 +306,7 @@ type ThemeContextType = {
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemScheme = useColorScheme();
-  const [themeMode, setThemeModeState] = useState<ThemeMode>("system");
+  const [themeMode, setThemeModeState] = useState<ThemeMode>("light");
   const [language, setLanguageState] = useState<Language>("en");
 
   useEffect(() => {
@@ -330,8 +328,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.setItem("language", lang);
   }, []);
 
-  const isDark =
-    themeMode === "dark" || (themeMode === "system" && systemScheme === "dark");
+  const isDark = themeMode === "dark";
 
   const t = useCallback(
     (key: string) => {

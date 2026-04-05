@@ -91,7 +91,7 @@ export default function TimerModal({ visible, onClose }: Props) {
             setSessions((s) => s + 1);
             setAlarmRinging(true);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            playLoopingAlarm();
+            playLoopingAlarm(profileSettings.alarmSound);
             return 0;
           }
           return prev - 1;
