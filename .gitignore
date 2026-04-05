@@ -44,6 +44,14 @@ Thumbs.db
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 
-# Replit
+# Local caches
 .cache/
 .local/
+
+# Android build output
+apps/mobile/android/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/app/.cxx/
+
+# Expo
+apps/mobile/.expo/
